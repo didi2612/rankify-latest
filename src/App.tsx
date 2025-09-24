@@ -1,19 +1,17 @@
 import { BrowserRouter as Router, Routes, Route, useLocation,Navigate } from 'react-router-dom';
 import Home from './pages/Home';
-import Upload from './pages/Upload';
 import Profile from './pages/Profile';
-import Search from './pages/Search';
 import Login from './pages/Login';
 import ProtectedRoute from './components/ProtectedRoute';
 import Sidebar from './components/Sidebar';
 import MyUploads from './pages/MyUpload';
-import Register from './pages/Register';
-import Saved from './pages/Saved';
+import QrPages from './pages/Qr';
+import AdminPages from './pages/Admin';
 
 
 function AppWrapper() {
   const location = useLocation();
-  const hideSidebarPaths = ['/profile', '/azp', '/upload', '/myupload', '/register', '/mysaved'];
+  const hideSidebarPaths = ['/profile', '/azp',  '/myupload', '/register', '/qr','/admin'];
   const shouldShowSidebar = !hideSidebarPaths.includes(location.pathname);
 
   return (
@@ -23,23 +21,24 @@ function AppWrapper() {
       <Routes>
         <Route path="/" element={<Home />} />
        
-        <Route path="/explore" element={<Search />} />
+       
         <Route path="/azp" element={<Login />} />
-        <Route path="/register" element={<Register />} />
+        
 
+        
         <Route
-          path="/upload"
+          path="/qr"
           element={
             <ProtectedRoute>
-              <Upload />
+              <QrPages />
             </ProtectedRoute>
           }
         />
-        <Route
-          path="/mysaved"
+         <Route
+          path="/admin"
           element={
             <ProtectedRoute>
-              <Saved />
+              <AdminPages/>
             </ProtectedRoute>
           }
         />

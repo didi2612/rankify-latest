@@ -23,7 +23,7 @@ const Sidebar = () => {
 
       try {
         const res = await fetch(
-          `${SUPABASE_URL}/rest/v1/users?username=eq.${username}&select=avatar_url`,
+          `${SUPABASE_URL}/rest/v1/judges?username=eq.${username}&select=avatar_url`,
           {
             headers: {
               apikey: SUPABASE_API_KEY,
@@ -61,7 +61,7 @@ const Sidebar = () => {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 flex items-center justify-between">
         {/* Left Side: Title */}
          <Link to="/" className="text-lg font-bold text-yellow-400 tracking-wide hover:text-white">
-      STUDY JOM
+      RANKIFY
     </Link>
 
         {/* Right Side: Profile */}

@@ -26,7 +26,7 @@ export default function Login() {
 
     setLoading(true);
     try {
-      const res = await fetch(`${SUPABASE_URL}/rest/v1/users?username=eq.${username}&password=eq.${password}`, {
+      const res = await fetch(`${SUPABASE_URL}/rest/v1/judges?username=eq.${username}&password=eq.${password}`, {
         method: "GET",
         headers: {
           apikey: SUPABASE_KEY,
@@ -57,7 +57,7 @@ export default function Login() {
 
       <div className="relative z-10 bg-gray-800/60 backdrop-blur-lg p-10 rounded-2xl shadow-2xl w-full max-w-md space-y-6 border border-gray-700">
         <h1 className="text-3xl font-bold text-center text-transparent bg-clip-text bg-gradient-to-r from-yellow-400 via-pink-400 to-purple-400 animate-text">
-          Welcome Back 👋
+          Welcome Back 
         </h1>
 
         <div className="space-y-4">

@@ -24,7 +24,7 @@ export default function ProtectedRoute({ children }: { children: React.ReactNode
 
       try {
         const res = await fetch(
-          `${SUPABASE_URL}/rest/v1/users?select=account_type&username=eq.${username}`,
+          `${SUPABASE_URL}/rest/v1/judges?select=account_type&username=eq.${username}`,
           {
             headers: {
               apikey: SUPABASE_API_KEY,

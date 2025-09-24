@@ -30,7 +30,7 @@ export default function Profile() {
     if (!username) return;
 
     const userRes = await fetch(
-      `${SUPABASE_URL}/rest/v1/users?select=*&username=eq.${username}`,
+      `${SUPABASE_URL}/rest/v1/judges?select=*&username=eq.${username}`,
       {
         headers: {
           apikey: SUPABASE_API_KEY,
@@ -89,7 +89,7 @@ export default function Profile() {
     if (!user) return;
     setSaving(true);
 
-    const res = await fetch(`${SUPABASE_URL}/rest/v1/users?id=eq.${user.id}`, {
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/judges?id=eq.${user.id}`, {
       method: "PATCH",
       headers: {
         "Content-Type": "application/json",
@@ -107,7 +107,8 @@ export default function Profile() {
     setSaving(false);
 
     if (res.ok) {
-      document.cookie = `username=${editUsername};path=/`;
+      document.cookie = `username=${editUsername};path=/;max-age=86400;SameSite=Lax`;
+
       setUser(updated[0]);
       setIsEditing(false);
       toast.success("Profile updated successfully!");
@@ -247,30 +248,26 @@ export default function Profile() {
   {user.account_type !== "student" && (
     <>
       <Link
-        to="/upload"
+        to="/admin"
         className="bg-yellow-400 hover:bg-yellow-300 text-black font-semibold px-6 py-3 rounded-xl shadow-lg transition-all duration-200"
       >
-        Upload Notes
+        Admin Panel
       </Link>
       
-      <Link
-        to="/myupload"
-        className="bg-yellow-400 hover:bg-yellow-300 text-black font-semibold px-6 py-3 rounded-xl shadow-lg transition-all duration-200"
-      >
-        My Notes
-      </Link>
+      
      
     </>
   )}
     <Link
-        to="/mysaved"
+        to="/qr"
         className="bg-yellow-400 hover:bg-yellow-300 text-black font-semibold px-6 py-3 rounded-xl shadow-lg transition-all duration-200"
       >
-     Saved Notes
+     QR Scanner
       </Link>
           <button
             onClick={() => {
-              document.cookie = "username=;expires=Thu, 01 Jan 1970 00:00:00 UTC;path=/;";
+              document.cookie = `username=${editUsername};path=/;max-age=86400;SameSite=Lax`;
+
               window.location.href = "/";
             }}
             className="bg-red-500 hover:bg-red-600 text-white px-6 py-3 rounded-xl font-semibold transition-all duration-200"
