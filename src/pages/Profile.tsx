@@ -238,14 +238,9 @@ export default function Profile() {
         </div>
 
         <div className="flex justify-center gap-4 flex-wrap">
-          <Link
-            to="/explore"
-            className="bg-yellow-400 hover:bg-yellow-300 text-black font-semibold px-6 py-3 rounded-xl shadow-lg transition-all duration-200"
-          >
-            Browse Notes
-          </Link>
+          
         {/* Conditionally render based on account_type */}
-  {user.account_type !== "student" && (
+  {user.account_type == "SuperAdmin" && (
     <>
       <Link
         to="/admin"
@@ -262,11 +257,11 @@ export default function Profile() {
         to="/qr"
         className="bg-yellow-400 hover:bg-yellow-300 text-black font-semibold px-6 py-3 rounded-xl shadow-lg transition-all duration-200"
       >
-     QR Scanner
+     Evaluation
       </Link>
           <button
             onClick={() => {
-              document.cookie = `username=${editUsername};path=/;max-age=86400;SameSite=Lax`;
+              document.cookie = "username=;expires=Thu, 01 Jan 1970 00:00:00 UTC;path=/;";
 
               window.location.href = "/";
             }}

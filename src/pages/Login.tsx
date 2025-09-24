@@ -68,7 +68,7 @@ export default function Login() {
               className="w-full px-4 py-3 rounded-xl bg-gray-900 text-white border border-gray-700 focus:outline-none focus:ring-2 focus:ring-yellow-400"
               value={username}
               onChange={(e) => setUsername(e.target.value)}
-              placeholder="eg. lawsoc"
+              placeholder="eg. azmi"
               autoCapitalize="none"
               autoCorrect="off"
               spellCheck="false"

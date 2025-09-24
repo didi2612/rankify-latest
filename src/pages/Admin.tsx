@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { toast } from "react-toastify";
 import Modal from "../components/Modal";
 import QRCode from "react-qr-code";
+import Cookies from "js-cookie"; // npm install js-cookie
 
 const SUPABASE_URL = "https://pftyzswxwkheomnqzytu.supabase.co";
 const SUPABASE_API_KEY =
@@ -28,16 +29,44 @@ export default function AdminPanel() {
   const [loading, setLoading] = useState(false);
   const [newRow, setNewRow] = useState<any>({});
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [accountType, setAccountType] = useState<string | null>(null);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
-  // ------------------- Fetch Data -------------------
+  // ------------------- Fetch user from cookie -------------------
+  useEffect(() => {
+    const username = Cookies.get("username");
+    if (!username) {
+      setAccountType(null);
+      return;
+    }
+
+    const fetchAccountType = async () => {
+      try {
+        const res = await fetch(
+          `${SUPABASE_URL}/rest/v1/judges?username=eq.${username}&select=account_type`,
+          {
+            headers: { apikey: SUPABASE_API_KEY, Authorization: `Bearer ${SUPABASE_API_KEY}` },
+          }
+        );
+        const result = await res.json();
+        if (result.length > 0) setAccountType(result[0].account_type);
+        else setAccountType(null);
+      } catch (err) {
+        console.error(err);
+        setAccountType(null);
+      }
+    };
+
+    fetchAccountType();
+  }, []);
+
+  // ------------------- Fetch Table Data -------------------
   const fetchTableData = async (table: TableType) => {
+    if (accountType !== "SuperAdmin") return;
     setLoading(true);
     try {
       const res = await fetch(`${SUPABASE_URL}/rest/v1/${table}?select=*`, {
-        headers: {
-          apikey: SUPABASE_API_KEY,
-          Authorization: `Bearer ${SUPABASE_API_KEY}`,
-        },
+        headers: { apikey: SUPABASE_API_KEY, Authorization: `Bearer ${SUPABASE_API_KEY}` },
       });
       const result = await res.json();
       setData(result);
@@ -48,20 +77,18 @@ export default function AdminPanel() {
     setLoading(false);
   };
 
-  // ------------------- Delete Record -------------------
+  useEffect(() => {
+    if (accountType === "SuperAdmin") fetchTableData(selectedTable);
+  }, [selectedTable, accountType]);
+
+  // ------------------- Delete -------------------
   const handleDelete = async (id: string) => {
     if (!confirm("Are you sure you want to delete this record?")) return;
     try {
-      const res = await fetch(
-        `${SUPABASE_URL}/rest/v1/${selectedTable}?id=eq.${id}`,
-        {
-          method: "DELETE",
-          headers: {
-            apikey: SUPABASE_API_KEY,
-            Authorization: `Bearer ${SUPABASE_API_KEY}`,
-          },
-        }
-      );
+      const res = await fetch(`${SUPABASE_URL}/rest/v1/${selectedTable}?id=eq.${id}`, {
+        method: "DELETE",
+        headers: { apikey: SUPABASE_API_KEY, Authorization: `Bearer ${SUPABASE_API_KEY}` },
+      });
       if (res.ok) {
         toast.success("Record deleted");
         fetchTableData(selectedTable);
@@ -72,7 +99,7 @@ export default function AdminPanel() {
     }
   };
 
-  // ------------------- Save Record -------------------
+  // ------------------- Save -------------------
   const handleSave = async (row: any, isNew = false) => {
     try {
       const res = await fetch(
@@ -93,20 +120,14 @@ export default function AdminPanel() {
         fetchTableData(selectedTable);
         setNewRow({});
         setIsModalOpen(false);
-      } else {
-        toast.error("Failed to save record");
-      }
+      } else toast.error("Failed to save");
     } catch (err) {
       console.error(err);
       toast.error("Error saving");
     }
   };
 
-  useEffect(() => {
-    fetchTableData(selectedTable);
-  }, [selectedTable]);
-
-  // ------------------- QR Download Function -------------------
+  // ------------------- QR -------------------
   const downloadQRCode = (value: string, filename = "qrcode.png") => {
     const svgElement = document.getElementById(`qr-${value}`);
     if (!svgElement) return;
@@ -135,106 +156,107 @@ export default function AdminPanel() {
     img.src = url;
   };
 
-  // ------------------- Render -------------------
-  return (
-    <div className="min-h-screen bg-gradient-to-b from-gray-900 via-black to-gray-950 text-white px-6 py-20 font-inter relative overflow-hidden">
-      {/* glowing blobs */}
-      <div className="absolute -top-20 -left-20 w-72 h-72 bg-pink-500/20 rounded-full blur-3xl animate-pulse" />
-      
-      <div className="absolute -bottom-20 -right-20 w-72 h-72 bg-yellow-400/20 rounded-full blur-3xl animate-pulse" />
-
-      <div className="max-w-7xl mx-auto relative z-10 space-y-10">
-        {/* Back to Profile Button */}
-<div className="flex justify-start mb-6">
-  <button
-    onClick={() => window.location.href = "/profile"}
-    className="flex items-center gap-3 px-5 py-3 bg-gray-800/70 border border-gray-700 rounded-2xl shadow-lg hover:shadow-yellow-400/50 transition-all duration-300 transform hover:-translate-y-1 hover:scale-105"
-  >
-    <svg
-      xmlns="http://www.w3.org/2000/svg"
-      className="h-5 w-5 text-yellow-400"
-      fill="none"
-      viewBox="0 0 24 24"
-      stroke="currentColor"
-      strokeWidth={2}
-    >
-      <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
-    </svg>
-    <span className="text-yellow-400 font-semibold text-sm sm:text-base">
-      Back to Profile
-    </span>
-  </button>
-</div>
-
-        <h1 className="text-4xl font-extrabold text-yellow-300 text-center">
-          Admin Panel
-        </h1>
-        <p className="text-center text-gray-400">
-          Manage Participants, Judges, and Scores
+  // ------------------- Access Denied -------------------
+  if (accountType !== "SuperAdmin") {
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-gray-900 text-white flex-col px-6">
+        <h1 className="text-4xl font-extrabold text-red-500 mb-4">Access Denied</h1>
+        <p className="text-gray-400 mb-6 text-center">
+          You do not have permission to view this page.
         </p>
+        <button
+          onClick={() => (window.location.href = "/")}
+          className="px-6 py-3 bg-yellow-400 text-black font-semibold rounded-xl hover:scale-105 transition-transform"
+        >
+          Go to Homepage
+        </button>
+      </div>
+    );
+  }
 
-        {/* Table selector */}
-        <div className="flex justify-center gap-4 flex-wrap">
-          {(["participants", "judges", "scores"] as TableType[]).map((t) => (
-            <button
-              key={t}
-              onClick={() => setSelectedTable(t)}
-              className={`px-6 py-3 rounded-xl font-semibold shadow-md transition ${
-                selectedTable === t
-                  ? "bg-yellow-400 text-black"
-                  : "bg-gray-700 hover:bg-gray-600 text-white"
-              }`}
-            >
-              {t.toUpperCase()}
-            </button>
-          ))}
-        </div>
+  // ------------------- Main Render -------------------
+  return (
+    <div className="min-h-screen flex flex-col md:flex-row bg-gradient-to-b from-gray-900 via-black to-gray-950 text-white font-inter">
+      {/* Sidebar */}
+      <aside
+        className={`fixed md:relative z-20 top-0 left-0 h-full w-64 bg-gray-900/80 backdrop-blur-lg border-r border-gray-700 p-6 flex flex-col gap-6 transition-transform duration-300 transform ${
+          sidebarOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0"
+        }`}
+      >
+        <button
+          onClick={() => setSidebarOpen(false)}
+          className="md:hidden mb-4 text-gray-400 font-bold"
+        >
+          Close
+        </button>
 
-        {/* Add New Button */}
+        <button
+          onClick={() => (window.location.href = "/profile")}
+          className="flex items-center gap-2 px-4 py-3 bg-gray-800/70 border border-gray-700 rounded-xl text-yellow-400 font-semibold hover:bg-gray-800 hover:shadow-lg transition-transform duration-200"
+        >
+          Profile
+        </button>
+
+        <h2 className="text-gray-400 uppercase font-bold text-sm tracking-wide">Tables</h2>
+        {(["participants", "judges", "scores"] as TableType[]).map((t) => (
+          <button
+            key={t}
+            onClick={() => setSelectedTable(t)}
+            className={`w-full text-left px-4 py-2 rounded-lg font-semibold transition ${
+              selectedTable === t ? "bg-yellow-400 text-black" : "hover:bg-gray-700 text-white"
+            }`}
+          >
+            {t.toUpperCase()}
+          </button>
+        ))}
+      </aside>
+
+      {/* Mobile Toggle Button */}
+      <button
+        className="md:hidden fixed top-4 left-4 z-30 p-2 bg-yellow-400 rounded-xl text-black font-bold shadow-lg"
+        onClick={() => setSidebarOpen(true)}
+      >
+        Menu
+      </button>
+
+      {/* Main Content */}
+      <main className="flex-1 p-6 md:p-10 mt-16 md:mt-0">
+        <h1 className="text-3xl md:text-4xl font-extrabold text-yellow-300 mb-2">Admin Dashboard</h1>
+        <p className="text-gray-400 mb-6">Manage participants, judges, and scores.</p>
+
+        {/* Add New */}
         {selectedTable !== "scores" && (
-          <div className="text-center">
+          <div className="flex justify-end mb-6">
             <button
               onClick={() => {
                 setNewRow({});
                 setIsModalOpen(true);
               }}
-              className="px-6 py-3 rounded-xl bg-blue-500 hover:bg-blue-400 text-white font-semibold shadow-md"
+              className="px-6 py-2 rounded-xl bg-gradient-to-r from-blue-500 to-blue-400 text-white font-semibold shadow hover:scale-105 transition-transform duration-200"
             >
               + Add {selectedTable.slice(0, -1)}
             </button>
           </div>
         )}
 
-        {/* Table Rendering */}
+        {/* Table/Cards */}
         {loading ? (
-          <p className="p-6 text-center text-gray-400">
-            Loading {selectedTable}...
-          </p>
+          <p className="text-center text-gray-400">Loading {selectedTable}...</p>
         ) : data.length === 0 ? (
-          <p className="p-6 text-center text-gray-400">
-            No records in {selectedTable}.
-          </p>
+          <p className="text-center text-gray-400">No records in {selectedTable}</p>
         ) : selectedTable === "participants" ? (
-          <div className="bg-gray-800/70 backdrop-blur-md rounded-2xl overflow-hidden shadow-xl">
-            <ul>
-              {data.map((row) => (
-                <li
-                  key={row.id}
-                  className="flex justify-between items-center p-4 border-b border-gray-700 hover:bg-gray-700 transition"
-                >
-                  <div>
-                    <p className="font-semibold text-yellow-400">{row.name}</p>
-                    <p className="text-gray-400 text-sm">{row.project_title}</p>
-                    <p className="text-gray-400 text-sm">{row.institution}</p>
-                  </div>
-                  <div className="flex items-center gap-4">
-                    <QRCode
-                      id={`qr-${row.name}`}
-                      value={row.name}
-                      size={128}
-                      bgColor="#ffffff"
-                      fgColor="#000000"
-                    />
+          <div className="grid gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
+            {data.map((row) => (
+              <div
+                key={row.id}
+                className="bg-gray-800/70 backdrop-blur-md rounded-2xl p-6 shadow-lg hover:-translate-y-1 hover:shadow-yellow-400/50 transition-transform duration-200"
+              >
+                <h3 className="text-yellow-400 font-bold text-lg">{row.name}</h3>
+                <p className="text-gray-400 text-sm">{row.project_title}</p>
+                <p className="text-gray-400 text-sm">{row.institution}</p>
+                <div className="mt-4 flex flex-col sm:flex-row justify-between items-center gap-3">
+                  <QRCode id={`qr-${row.name}`} value={row.name} size={80} bgColor="#ffffff" fgColor="#000000" />
+                  <div className="flex flex-col sm:flex-row gap-2 mt-2 sm:mt-0">
                     <button
                       onClick={() => downloadQRCode(row.name)}
                       className="px-3 py-1 rounded bg-green-500 hover:bg-green-600 text-white font-semibold"
@@ -248,45 +270,39 @@ export default function AdminPanel() {
                       Delete
                     </button>
                   </div>
-                </li>
-              ))}
-            </ul>
-          </div>
-        ) : selectedTable === "judges" ? (
-          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-            {data.map((judge) => (
-              <div
-                key={judge.id}
-                className="bg-gray-800/70 backdrop-blur-md border border-gray-700 rounded-2xl shadow-xl p-6 relative hover:-translate-y-2 hover:shadow-2xl transition"
-              >
-                <div className="flex flex-col items-center mb-4">
-                  <img
-                    src={judge.avatar_url || "/default-avatar.png"}
-                    alt={judge.name}
-                    className="w-20 h-20 rounded-full border-2 border-yellow-400 object-cover mb-2"
-                  />
-                  <h3 className="text-yellow-400 font-bold text-lg">{judge.name}</h3>
-                  <p className="text-gray-300 text-sm">@{judge.username || "no_username"}</p>
-                  <p className="text-gray-400 text-sm">{judge.email}</p>
-                </div>
-
-                <div className="mt-4 flex justify-center gap-4">
-                  <button
-                    onClick={() => handleDelete(judge.id)}
-                    className="px-4 py-2 rounded-xl bg-red-500 hover:bg-red-600 text-white font-semibold transition"
-                  >
-                    Delete
-                  </button>
                 </div>
               </div>
             ))}
           </div>
+        ) : selectedTable === "judges" ? (
+          <div className="grid gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
+            {data.map((judge) => (
+              <div
+                key={judge.id}
+                className="bg-gray-800/70 backdrop-blur-md rounded-2xl p-6 shadow-lg hover:-translate-y-1 hover:shadow-yellow-400/50 transition-transform duration-200 flex flex-col items-center"
+              >
+                <img
+                  src={judge.avatar_url || "/default-avatar.png"}
+                  className="w-20 h-20 rounded-full border-2 border-yellow-400 mb-3 object-cover"
+                />
+                <h3 className="text-yellow-400 font-bold">{judge.name}</h3>
+                <p className="text-gray-300 text-sm">@{judge.username || "no_username"}</p>
+                <p className="text-gray-400 text-sm">{judge.email}</p>
+                <button
+                  onClick={() => handleDelete(judge.id)}
+                  className="mt-4 px-4 py-2 rounded-xl bg-red-500 hover:bg-red-600 text-white font-semibold transition"
+                >
+                  Delete
+                </button>
+              </div>
+            ))}
+          </div>
         ) : (
-          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="grid gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
             {data.map((row) => (
               <div
                 key={row.id}
-                className="bg-gray-800/70 backdrop-blur-md border border-gray-700 rounded-2xl shadow-xl p-6 relative hover:-translate-y-2 hover:shadow-2xl transition"
+                className="bg-gray-800/70 backdrop-blur-md rounded-2xl p-6 shadow-lg hover:-translate-y-1 hover:shadow-yellow-400/50 transition-transform duration-200"
               >
                 {Object.keys(row).map((col) => (
                   <div key={col} className="mb-2">
@@ -299,14 +315,13 @@ export default function AdminPanel() {
           </div>
         )}
 
-        {/* Modal for Add New Record */}
+        {/* Modal */}
         <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)}>
-          <div className="relative w-full p-8 rounded-3xl bg-white/5 backdrop-blur-xl shadow-2xl shadow-black/40">
-            <h2 className="text-3xl font-extrabold text-center text-yellow-400 mb-6 drop-shadow-lg">
-              Add New {selectedTable.charAt(0).toUpperCase() + selectedTable.slice(1, -1)}
+          <div className="relative w-full max-w-lg p-8 rounded-3xl bg-white/5 backdrop-blur-xl shadow-2xl shadow-black/40">
+            <h2 className="text-3xl font-extrabold text-center text-yellow-400 mb-6">
+              Add New {selectedTable.slice(0, -1)}
             </h2>
-
-            <div className="grid md:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {tableColumns[selectedTable].map((col) => (
                 <div key={col} className="flex flex-col">
                   <label className="text-gray-400 text-sm mb-1 uppercase tracking-wide">{col}</label>
@@ -319,7 +334,6 @@ export default function AdminPanel() {
                 </div>
               ))}
             </div>
-
             <button
               onClick={() => handleSave(newRow, true)}
               className="mt-8 w-full py-3 rounded-2xl bg-gradient-to-r from-yellow-400 to-yellow-300 text-black font-bold shadow-lg hover:shadow-yellow-400/50 hover:scale-105 transition-transform duration-300"
@@ -328,7 +342,7 @@ export default function AdminPanel() {
             </button>
           </div>
         </Modal>
-      </div>
+      </main>
     </div>
   );
 }
