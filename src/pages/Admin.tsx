@@ -338,7 +338,7 @@ export default function AdminPanel() {
               onClick={() => handleSave(newRow, true)}
               className="mt-8 w-full py-3 rounded-2xl bg-gradient-to-r from-yellow-400 to-yellow-300 text-black font-bold shadow-lg hover:shadow-yellow-400/50 hover:scale-105 transition-transform duration-300"
             >
-              Add
+              Add Data
             </button>
           </div>
         </Modal>
