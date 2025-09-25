@@ -67,7 +67,7 @@ export default function Profile() {
       const data = await res.json();
       if (res.ok && data.success) {
         setEditAvatar(data.url);
-        toast.success("Avatar uploaded successfully!");
+        toast.success("Avatar uploaded successfully !");
       } else {
         toast.error("Upload failed. Try again.");
       }
