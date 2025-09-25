@@ -68,17 +68,12 @@ export default function Home() {
       Trusted by judges and participants
     </p>
     <div className="flex flex-wrap justify-center lg:justify-start gap-4">
-      <Link
-        to="/judging"
-        className="border border-yellow-400 hover:bg-yellow-400 hover:text-black text-yellow-400 font-semibold px-6 py-3 rounded-xl transition"
-      >
-        Start Judging
-      </Link>
+      
       <Link
         to="/explore"
         className="border border-pink-400 hover:bg-pink-400 hover:text-black text-pink-400 font-semibold px-6 py-3 rounded-xl transition"
       >
-        View Results
+        View Scoreboard
       </Link>
     </div>
   </motion.div>

@@ -19,7 +19,7 @@ type UserProfile = {
 
 export default function Profile() {
   const [user, setUser] = useState<UserProfile | null>(null);
-  const [noteCount, setNoteCount] = useState<number>(0);
+
   const [isEditing, setIsEditing] = useState(false);
   const [editUsername, setEditUsername] = useState("");
   const [editAvatar, setEditAvatar] = useState("");
@@ -46,17 +46,9 @@ export default function Profile() {
     setEditUsername(userProfile.username);
     setEditAvatar(userProfile.avatar_url);
 
-    const notesRes = await fetch(
-      `${SUPABASE_URL}/rest/v1/notes?select=id&uploaded_by=eq.${username}`,
-      {
-        headers: {
-          apikey: SUPABASE_API_KEY,
-          Authorization: `Bearer ${SUPABASE_API_KEY}`,
-        },
-      }
-    );
-    const notes = await notesRes.json();
-    setNoteCount(notes.length);
+    
+    
+   
   };
 
   const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -147,7 +139,7 @@ export default function Profile() {
           <h1 className="text-3xl sm:text-4xl font-extrabold text-yellow-300">
             Hola, {user.username} 🌟
           </h1>
-          <p className="text-gray-400 text-sm sm:text-base">Your personalized study space</p>
+          <p className="text-gray-400 text-sm sm:text-base">Your personalized space</p>
         </div>
 
         <div className="bg-gray-800/70 backdrop-blur-md border border-gray-700 rounded-2xl p-6 sm:p-8 shadow-xl space-y-6">
@@ -188,19 +180,7 @@ export default function Profile() {
                 <p className="text-sm text-gray-400 italic">—</p>
               )}
             </div>
-{user.account_type !== "student" && (
-  <>
-    <div>
-      <p className="text-sm text-gray-400">Notes Uploaded</p>
-      <p className="text-lg font-semibold text-yellow-400">{noteCount}</p>
-    </div>
 
-    <div>
-      <p className="text-sm text-gray-400">User ID</p>
-      <p className="text-lg font-semibold text-white truncate">{user.id}</p>
-    </div>
-  </>
-)}
 </div>
           <div className="flex flex-wrap gap-4 justify-between items-center pt-4">
             {isEditing ? (
