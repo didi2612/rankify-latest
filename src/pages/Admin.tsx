@@ -2,7 +2,8 @@ import { useEffect, useState } from "react";
 import { toast } from "react-toastify";
 import Modal from "../components/Modal";
 import QRCode from "react-qr-code";
-import Cookies from "js-cookie"; // npm install js-cookie
+import Cookies from "js-cookie";
+import { Menu, X, User, LogOut, Download, Trash2, PlusCircle, Server, Code } from "lucide-react"; // Importing professional icons
 
 const SUPABASE_URL = "https://pftyzswxwkheomnqzytu.supabase.co";
 const SUPABASE_API_KEY =
@@ -31,6 +32,13 @@ export default function AdminPanel() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [accountType, setAccountType] = useState<string | null>(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
+
+  // Helper to map table type to a display name
+  const tableDisplayNames: Record<TableType, string> = {
+    participants: "Participants",
+    judges: "Judges",
+    scores: "Scores",
+  };
 
   // ------------------- Fetch user from cookie -------------------
   useEffect(() => {
@@ -83,25 +91,30 @@ export default function AdminPanel() {
 
   // ------------------- Delete -------------------
   const handleDelete = async (id: string) => {
-    if (!confirm("Are you sure you want to delete this record?")) return;
+    if (!confirm("Are you sure you want to delete this record? This action cannot be undone.")) return;
     try {
       const res = await fetch(`${SUPABASE_URL}/rest/v1/${selectedTable}?id=eq.${id}`, {
         method: "DELETE",
         headers: { apikey: SUPABASE_API_KEY, Authorization: `Bearer ${SUPABASE_API_KEY}` },
       });
       if (res.ok) {
-        toast.success("Record deleted");
+        toast.success("Record deleted successfully");
         fetchTableData(selectedTable);
-      } else toast.error("Failed to delete");
+      } else toast.error("Failed to delete record");
     } catch (err) {
       console.error(err);
-      toast.error("Error deleting");
+      toast.error("Error deleting record");
     }
   };
 
   // ------------------- Save -------------------
   const handleSave = async (row: any, isNew = false) => {
     try {
+      // Clean up empty strings or nulls to allow Supabase defaults/nullability to work
+      const dataToSave = Object.fromEntries(
+        Object.entries(row).filter(([_, value]) => value !== "" && value !== null)
+      );
+
       const res = await fetch(
         `${SUPABASE_URL}/rest/v1/${selectedTable}${isNew ? "" : `?id=eq.${row.id}`}`,
         {
@@ -112,18 +125,21 @@ export default function AdminPanel() {
             Authorization: `Bearer ${SUPABASE_API_KEY}`,
             Prefer: "return=representation",
           },
-          body: JSON.stringify(row),
+          body: JSON.stringify(dataToSave),
         }
       );
       if (res.ok) {
-        toast.success(isNew ? "Record created" : "Record updated");
+        toast.success(isNew ? "Record created successfully" : "Record updated successfully");
         fetchTableData(selectedTable);
         setNewRow({});
         setIsModalOpen(false);
-      } else toast.error("Failed to save");
+      } else {
+        const errorText = await res.text();
+        toast.error(`Failed to save: ${errorText.substring(0, 100)}...`);
+      }
     } catch (err) {
       console.error(err);
-      toast.error("Error saving");
+      toast.error("Error saving record");
     }
   };
 
@@ -137,13 +153,28 @@ export default function AdminPanel() {
     const ctx = canvas.getContext("2d");
     const img = new Image();
 
+    // Use Blob to handle SVG content securely and correctly
     const svgBlob = new Blob([svgData], { type: "image/svg+xml;charset=utf-8" });
     const url = URL.createObjectURL(svgBlob);
 
     img.onload = () => {
-      canvas.width = img.width;
-      canvas.height = img.height;
-      ctx?.drawImage(img, 0, 0);
+      // Set canvas size to match the SVG for a high-quality download
+      const size = 300; // Increased size for better quality download
+      canvas.width = size;
+      canvas.height = size;
+      
+      // Calculate scale factor to center and fill the canvas
+      const scale = Math.min(size / img.width, size / img.height);
+      const x = (size / 2) - (img.width / 2) * scale;
+      const y = (size / 2) - (img.height / 2) * scale;
+      
+      // Draw the image, ensuring a white background for the QR code
+      if (ctx) {
+        ctx.fillStyle = "#ffffff";
+        ctx.fillRect(0, 0, size, size);
+        ctx.drawImage(img, x, y, img.width * scale, img.height * scale);
+      }
+      
       URL.revokeObjectURL(url);
 
       const pngImg = canvas.toDataURL("image/png");
@@ -159,115 +190,159 @@ export default function AdminPanel() {
   // ------------------- Access Denied -------------------
   if (accountType !== "SuperAdmin") {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-gray-900 text-white flex-col px-6">
-        <h1 className="text-4xl font-extrabold text-red-500 mb-4">Access Denied</h1>
-        <p className="text-gray-400 mb-6 text-center">
-          You do not have permission to view this page.
-        </p>
-        <button
-          onClick={() => (window.location.href = "/")}
-          className="px-6 py-3 bg-yellow-400 text-black font-semibold rounded-xl hover:scale-105 transition-transform"
-        >
-          Go to Homepage
-        </button>
+      <div className="flex items-center justify-center min-h-screen bg-gray-950 text-white flex-col px-6">
+        <div className="p-10 rounded-xl bg-gray-800/50 backdrop-blur-sm border border-red-700 shadow-2xl">
+          <h1 className="text-4xl font-extrabold text-red-500 mb-4 flex items-center gap-3">
+            <X className="w-8 h-8"/> Access Denied
+          </h1>
+          <p className="text-gray-400 mb-6 text-center">
+            You must be logged in as a **SuperAdmin** to view this page.
+          </p>
+          <button
+            onClick={() => (window.location.href = "/")}
+            className="w-full px-6 py-3 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 transition-colors shadow-lg shadow-blue-500/30"
+          >
+            Go to Login / Homepage
+          </button>
+        </div>
       </div>
     );
   }
 
   // ------------------- Main Render -------------------
   return (
-    <div className="min-h-screen flex flex-col md:flex-row bg-gradient-to-b from-gray-900 via-black to-gray-950 text-white font-inter">
+    <div className="min-h-screen flex flex-col md:flex-row bg-gray-950 text-white font-sans">
+      
       {/* Sidebar */}
       <aside
-        className={`fixed md:relative z-20 top-0 left-0 h-full w-64 bg-gray-900/80 backdrop-blur-lg border-r border-gray-700 p-6 flex flex-col gap-6 transition-transform duration-300 transform ${
+        className={`fixed md:relative z-20 top-0 left-0 h-full w-64 bg-gray-900 border-r border-gray-800 p-6 flex flex-col gap-8 transition-transform duration-300 transform ${
           sidebarOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0"
         }`}
       >
-        <button
-          onClick={() => setSidebarOpen(false)}
-          className="md:hidden mb-4 text-gray-400 font-bold"
-        >
-          Close
-        </button>
+        <div className="flex justify-between items-center mb-4">
+            <h2 className="text-2xl font-bold text-amber-400">Admin Panel</h2>
+            <button
+                onClick={() => setSidebarOpen(false)}
+                className="md:hidden text-gray-400 hover:text-white"
+            >
+                <X className="w-6 h-6"/>
+            </button>
+        </div>
 
         <button
           onClick={() => (window.location.href = "/profile")}
-          className="flex items-center gap-2 px-4 py-3 bg-gray-800/70 border border-gray-700 rounded-xl text-yellow-400 font-semibold hover:bg-gray-800 hover:shadow-lg transition-transform duration-200"
+          className="flex items-center gap-3 px-4 py-3 bg-gray-800 border border-gray-700 rounded-lg text-white font-medium hover:bg-gray-700/70 transition-colors shadow-md"
         >
-          Profile
+          <User className="w-5 h-5 text-blue-400" />
+          User Profile
         </button>
 
-        <h2 className="text-gray-400 uppercase font-bold text-sm tracking-wide">Tables</h2>
-        {(["participants", "judges", "scores"] as TableType[]).map((t) => (
-          <button
-            key={t}
-            onClick={() => setSelectedTable(t)}
-            className={`w-full text-left px-4 py-2 rounded-lg font-semibold transition ${
-              selectedTable === t ? "bg-yellow-400 text-black" : "hover:bg-gray-700 text-white"
-            }`}
-          >
-            {t.toUpperCase()}
-          </button>
-        ))}
+        <div>
+            <h3 className="text-gray-400 uppercase font-bold text-xs tracking-wider mb-3">Data Tables</h3>
+            {(["participants", "judges", "scores"] as TableType[]).map((t) => (
+                <button
+                    key={t}
+                    onClick={() => {setSelectedTable(t); setSidebarOpen(false);}}
+                    className={`w-full text-left flex items-center gap-3 px-4 py-2 my-1 rounded-lg font-medium transition duration-150 ${
+                        selectedTable === t 
+                            ? "bg-amber-500 text-gray-900 shadow-md" 
+                            : "hover:bg-gray-800 text-gray-300"
+                    }`}
+                >
+                    <Server className="w-4 h-4"/>
+                    {tableDisplayNames[t]}
+                </button>
+            ))}
+        </div>
+        
+        {/* Logout Button - Added for completeness */}
+        <button
+            onClick={() => { Cookies.remove('username'); window.location.href = "/"}}
+            className="mt-auto flex items-center gap-3 px-4 py-3 bg-red-600 rounded-lg text-white font-medium hover:bg-red-700 transition-colors shadow-lg shadow-red-500/30"
+        >
+          <LogOut className="w-5 h-5"/>
+          Logout
+        </button>
       </aside>
 
-      {/* Mobile Toggle Button */}
-      <button
-        className="md:hidden fixed top-4 left-4 z-30 p-2 bg-yellow-400 rounded-xl text-black font-bold shadow-lg"
-        onClick={() => setSidebarOpen(true)}
-      >
-        Menu
-      </button>
-
       {/* Main Content */}
-      <main className="flex-1 p-6 md:p-10 mt-16 md:mt-0">
-        <h1 className="text-3xl md:text-4xl font-extrabold text-yellow-300 mb-2">Admin Dashboard</h1>
-        <p className="text-gray-400 mb-6">Manage participants, judges, and scores.</p>
+      <main className="flex-1 p-6 md:p-10">
+        {/* Mobile Toggle Button */}
+        <button
+          className="md:hidden fixed top-4 left-4 z-30 p-2 bg-amber-500 rounded-lg text-gray-900 font-bold shadow-lg"
+          onClick={() => setSidebarOpen(true)}
+        >
+          <Menu className="w-6 h-6"/>
+        </button>
+        
+        <header className="mb-8 mt-12 md:mt-0">
+            <h1 className="text-4xl font-extrabold text-white mb-2">
+                <span className="text-amber-500">{tableDisplayNames[selectedTable]}</span> Management
+            </h1>
+            <p className="text-gray-400">
+                Viewing and managing data for the **{tableDisplayNames[selectedTable]}** table.
+            </p>
+        </header>
+
 
         {/* Add New */}
         {selectedTable !== "scores" && (
-          <div className="flex justify-end mb-6">
+          <div className="flex justify-end mb-8">
             <button
               onClick={() => {
                 setNewRow({});
                 setIsModalOpen(true);
               }}
-              className="px-6 py-2 rounded-xl bg-gradient-to-r from-blue-500 to-blue-400 text-white font-semibold shadow hover:scale-105 transition-transform duration-200"
+              className="flex items-center gap-2 px-6 py-3 rounded-lg bg-blue-600 text-white font-semibold shadow-xl shadow-blue-500/30 hover:bg-blue-700 transition-colors duration-200"
             >
-              + Add {selectedTable.slice(0, -1)}
+              <PlusCircle className="w-5 h-5"/>
+              Add New {tableDisplayNames[selectedTable].slice(0, -1)}
             </button>
           </div>
         )}
 
-        {/* Table/Cards */}
+        {/* Data Display Area */}
         {loading ? (
-          <p className="text-center text-gray-400">Loading {selectedTable}...</p>
+          <div className="flex justify-center items-center h-64">
+             <p className="text-gray-400 animate-pulse text-lg">Loading {tableDisplayNames[selectedTable]} data...</p>
+          </div>
         ) : data.length === 0 ? (
-          <p className="text-center text-gray-400">No records in {selectedTable}</p>
+          <div className="flex justify-center items-center h-64">
+             <p className="text-gray-400 text-lg">No records found in **{tableDisplayNames[selectedTable]}**.</p>
+          </div>
         ) : selectedTable === "participants" ? (
-          <div className="grid gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="grid gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
             {data.map((row) => (
               <div
                 key={row.id}
-                className="bg-gray-800/70 backdrop-blur-md rounded-2xl p-6 shadow-lg hover:-translate-y-1 hover:shadow-yellow-400/50 transition-transform duration-200"
+                className="bg-gray-800 border border-gray-700 rounded-xl p-6 shadow-xl transition-all duration-300 hover:shadow-amber-500/20"
               >
-                <h3 className="text-yellow-400 font-bold text-lg">{row.name}</h3>
-                <p className="text-gray-400 text-sm">{row.project_title}</p>
-                <p className="text-gray-400 text-sm">{row.institution}</p>
-                <div className="mt-4 flex flex-col sm:flex-row justify-between items-center gap-3">
-                  <QRCode id={`qr-${row.name}`} value={row.name} size={80} bgColor="#ffffff" fgColor="#000000" />
-                  <div className="flex flex-col sm:flex-row gap-2 mt-2 sm:mt-0">
+                <div className="flex items-start justify-between mb-4">
+                    <div className="flex flex-col">
+                        <h3 className="text-white font-bold text-lg">{row.name}</h3>
+                        <p className="text-amber-400 text-sm font-medium">{row.project_title}</p>
+                        <p className="text-gray-400 text-xs mt-1">{row.institution}</p>
+                    </div>
+                    <span className="bg-blue-600 text-white text-xs font-semibold px-3 py-1 rounded-full">{row.category}</span>
+                </div>
+                
+                <div className="mt-4 flex justify-between items-center gap-4 border-t border-gray-700 pt-4">
+                  <div className="flex flex-col items-center">
+                    <QRCode id={`qr-${row.name}`} value={`${SUPABASE_URL}/participant/${row.id}`} size={70} bgColor="#ffffff" fgColor="#000000" />
+                    <p className="text-gray-500 text-xs mt-1">ID: {row.id}</p>
+                  </div>
+                  <div className="flex flex-col gap-2">
                     <button
-                      onClick={() => downloadQRCode(row.name)}
-                      className="px-3 py-1 rounded bg-green-500 hover:bg-green-600 text-white font-semibold"
+                      onClick={() => downloadQRCode(row.name, `${row.name.replace(/\s/g, '_')}_QR.png`)}
+                      className="flex items-center justify-center gap-1 px-3 py-1 text-sm rounded-md bg-green-600 hover:bg-green-700 text-white font-medium transition"
                     >
-                      Download
+                      <Download className="w-4 h-4" /> Download QR
                     </button>
                     <button
                       onClick={() => handleDelete(row.id)}
-                      className="px-3 py-1 rounded bg-red-500 hover:bg-red-600 text-white font-semibold"
+                      className="flex items-center justify-center gap-1 px-3 py-1 text-sm rounded-md bg-red-600 hover:bg-red-700 text-white font-medium transition"
                     >
-                      Delete
+                      <Trash2 className="w-4 h-4" /> Delete
                     </button>
                   </div>
                 </div>
@@ -275,22 +350,23 @@ export default function AdminPanel() {
             ))}
           </div>
         ) : selectedTable === "judges" ? (
-          <div className="grid gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="grid gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
             {data.map((judge) => (
               <div
                 key={judge.id}
-                className="bg-gray-800/70 backdrop-blur-md rounded-2xl p-6 shadow-lg hover:-translate-y-1 hover:shadow-yellow-400/50 transition-transform duration-200 flex flex-col items-center"
+                className="bg-gray-800 border border-gray-700 rounded-xl p-6 shadow-xl transition-all duration-300 hover:shadow-amber-500/20 flex flex-col items-center text-center"
               >
                 <img
                   src={judge.avatar_url || "/default-avatar.png"}
-                  className="w-20 h-20 rounded-full border-2 border-yellow-400 mb-3 object-cover"
+                  alt={judge.name}
+                  className="w-20 h-20 rounded-full border-4 border-amber-500 mb-4 object-cover shadow-lg"
                 />
-                <h3 className="text-yellow-400 font-bold">{judge.name}</h3>
+                <h3 className="text-white font-bold text-lg">{judge.name}</h3>
                 <p className="text-gray-300 text-sm">@{judge.username || "no_username"}</p>
-                <p className="text-gray-400 text-sm">{judge.email}</p>
+                <p className="text-gray-400 text-sm mb-4">{judge.email}</p>
                 <button
                   onClick={() => handleDelete(judge.id)}
-                  className="mt-4 px-4 py-2 rounded-xl bg-red-500 hover:bg-red-600 text-white font-semibold transition"
+                  className="mt-2 w-full max-w-[120px] px-4 py-2 rounded-lg bg-red-600 hover:bg-red-700 text-white font-medium transition shadow-md shadow-red-500/30"
                 >
                   Delete
                 </button>
@@ -298,47 +374,60 @@ export default function AdminPanel() {
             ))}
           </div>
         ) : (
-          <div className="grid gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
+            // Scores Table: Clean, tabular presentation is often better, but keeping the card layout for consistency and simplicity.
+          <div className="grid gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
             {data.map((row) => (
               <div
                 key={row.id}
-                className="bg-gray-800/70 backdrop-blur-md rounded-2xl p-6 shadow-lg hover:-translate-y-1 hover:shadow-yellow-400/50 transition-transform duration-200"
+                className="bg-gray-800 border border-gray-700 rounded-xl p-6 shadow-xl transition-all duration-300 hover:shadow-amber-500/20"
               >
-                {Object.keys(row).map((col) => (
-                  <div key={col} className="mb-2">
-                    <span className="text-gray-400 text-xs uppercase">{col}</span>
-                    <p className="text-white">{row[col]}</p>
+                <h4 className="text-lg font-bold text-amber-400 mb-3">Score ID: {row.id}</h4>
+                {tableColumns[selectedTable].map((col) => (
+                  <div key={col} className="flex justify-between border-b border-gray-700/50 py-2 last:border-b-0">
+                    <span className="text-gray-400 text-xs uppercase tracking-wider">{col.replace(/_/g, ' ')}</span>
+                    <p className={`text-white font-medium ${col.includes('score') ? 'text-lg text-blue-300' : 'text-sm'}`}>
+                      {row[col]}
+                    </p>
                   </div>
                 ))}
+                {/* No delete button for scores as they should likely be updated, not deleted */}
               </div>
             ))}
           </div>
         )}
 
-        {/* Modal */}
+        {/* Modal for Add New */}
         <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)}>
-          <div className="relative w-full max-w-lg p-8 rounded-3xl bg-white/5 backdrop-blur-xl shadow-2xl shadow-black/40">
-            <h2 className="text-3xl font-extrabold text-center text-yellow-400 mb-6">
-              Add New {selectedTable.slice(0, -1)}
+          <div className="relative w-full max-w-lg p-10 rounded-2xl bg-gray-900 border border-gray-700 shadow-2xl shadow-black/70">
+            <h2 className="text-3xl font-extrabold text-center text-amber-400 mb-8">
+                <PlusCircle className="inline w-7 h-7 mr-2"/>
+              Add New {tableDisplayNames[selectedTable].slice(0, -1)}
             </h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {tableColumns[selectedTable].map((col) => (
                 <div key={col} className="flex flex-col">
-                  <label className="text-gray-400 text-sm mb-1 uppercase tracking-wide">{col}</label>
+                  <label className="text-gray-400 text-sm mb-2 uppercase font-medium tracking-wider">{col.replace(/_/g, ' ')}</label>
                   <input
-                    placeholder={`Enter ${col}`}
+                    type={
+                        col.includes('password') ? 'password' :
+                        col.includes('email') ? 'email' :
+                        col.includes('score') ? 'number' :
+                        'text'
+                    }
+                    placeholder={`Enter ${col.replace(/_/g, ' ')}`}
                     value={newRow[col] ?? ""}
                     onChange={(e) => setNewRow({ ...newRow, [col]: e.target.value })}
-                    className="bg-gray-900/50 border border-gray-600 rounded-xl px-4 py-3 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-yellow-400 focus:border-yellow-400 transition-all shadow-md hover:shadow-yellow-400/30"
+                    className="bg-gray-800 border border-gray-700 rounded-lg px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-all text-sm"
                   />
                 </div>
               ))}
             </div>
             <button
               onClick={() => handleSave(newRow, true)}
-              className="mt-8 w-full py-3 rounded-2xl bg-gradient-to-r from-yellow-400 to-yellow-300 text-black font-bold shadow-lg hover:shadow-yellow-400/50 hover:scale-105 transition-transform duration-300"
+              className="mt-10 w-full py-3 rounded-lg bg-blue-600 text-white font-bold shadow-lg shadow-blue-500/40 hover:bg-blue-700 transition-colors duration-300 flex items-center justify-center gap-2"
             >
-              Add Data
+                <Code className="w-5 h-5"/>
+              Create Record
             </button>
           </div>
         </Modal>
