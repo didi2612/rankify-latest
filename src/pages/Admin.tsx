@@ -328,7 +328,7 @@ export default function AdminPanel() {
                 
                 <div className="mt-4 flex justify-between items-center gap-4 border-t border-gray-700 pt-4">
                   <div className="flex flex-col items-center">
-                    <QRCode id={`qr-${row.name}`} value={`${SUPABASE_URL}/participant/${row.id}`} size={70} bgColor="#ffffff" fgColor="#000000" />
+                    <QRCode id={`qr-${row.id}`} value={`${row.id}`} size={70} bgColor="#ffffff" fgColor="#000000" />
                     <p className="text-gray-500 text-xs mt-1">ID: {row.id}</p>
                   </div>
                   <div className="flex flex-col gap-2">
