@@ -95,12 +95,7 @@ export default function Login() {
           >
             {loading ? "Logging in..." : "Login"}
           </button>
-          <p className="text-sm text-gray-400 text-center">
-            Don’t have an account?{" "}
-            <a href="/register" className="text-yellow-400 hover:underline transition">
-              Register here
-            </a>
-          </p>
+         
         </div>
       </div>
     </div>
