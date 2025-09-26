@@ -4,13 +4,17 @@ import { ArrowLeft, QrCode, Copy, User, Zap, Star, TrendingUp, Send, Loader2, Me
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { toast } from "react-toastify";
+import Cookies from "js-cookie";
+
 
 const SUPABASE_URL = "https://pftyzswxwkheomnqzytu.supabase.co";
 const SUPABASE_API_KEY =
   "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBmdHl6c3d4d2toZW9tbnF6eXR1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTM3NjczNzksImV4cCI6MjA2OTM0MzM3OX0.TI9DGipYP9X8dSZSUh5CVQIbeYnf9vhNXKqw5e5ZVkk";
 
 // TODO: Replace with the logged-in judge UUID from your auth system
-const LOGGED_IN_JUDGE_ID = "<uuid-of-logged-in-judge>";
+// Get logged-in judge username from cookies
+const LOGGED_IN_JUDGE_ID = Cookies.get("username") || "";
+
 
 // --- Custom Components for better readability and reusability ---
 
