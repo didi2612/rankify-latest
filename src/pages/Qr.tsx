@@ -13,7 +13,7 @@ const SUPABASE_API_KEY =
 const [judgeId, setJudgeId] = useState<string | null>(null); 
 // TODO: Replace with the logged-in judge UUID from your auth system
 // Get logged-in judge username from cookies
-// fetch the judge ui instead of username
+
 
 useEffect(() => {
     const loadJudgeId = async () => {
