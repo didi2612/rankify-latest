@@ -10,10 +10,20 @@ import Cookies from "js-cookie";
 const SUPABASE_URL = "https://pftyzswxwkheomnqzytu.supabase.co";
 const SUPABASE_API_KEY =
   "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBmdHl6c3d4d2toZW9tbnF6eXR1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTM3NjczNzksImV4cCI6MjA2OTM0MzM3OX0.TI9DGipYP9X8dSZSUh5CVQIbeYnf9vhNXKqw5e5ZVkk";
-
+const [judgeId, setJudgeId] = useState<string | null>(null); 
 // TODO: Replace with the logged-in judge UUID from your auth system
 // Get logged-in judge username from cookies
 // fetch the judge ui instead of username
+
+useEffect(() => {
+    const loadJudgeId = async () => {
+      const username = Cookies.get("username") || "";
+      if (!username) return;
+      const id = await fetchJudgeId(username);
+      setJudgeId(id);
+    };
+    loadJudgeId();
+  }, []);
 const fetchJudgeId = async (username: string) => {
   const res = await fetch(
     `${SUPABASE_URL}/rest/v1/judges?username=eq.${encodeURIComponent(username)}&select=id`,
@@ -27,7 +37,7 @@ const fetchJudgeId = async (username: string) => {
   const data = await res.json();
   return data.length > 0 ? data[0].id : null;
 };
-const LOGGED_IN_JUDGE_ID = await fetchJudgeId(Cookies.get("username") || "");
+
 
 
 // --- Custom Components for better readability and reusability ---
@@ -169,17 +179,17 @@ export default function QRScannerPage() {
         }
     }
 
-    if (LOGGED_IN_JUDGE_ID === "<uuid-of-logged-in-judge>") {
-        toast.error("CONFIGURATION ERROR: Judge ID is not set.", {
-            autoClose: 8000
-        });
-        return;
+   if (!judgeId) {
+    toast.error("CONFIGURATION ERROR: Judge ID is not set.", {
+      autoClose: 8000
+    });
+    return;
     }
 
     try {
       // Check for existing score
       const existingScoreRes = await fetch(
-        `${SUPABASE_URL}/rest/v1/scores?participant_id=eq.${participant.id}&judge_id=eq.${LOGGED_IN_JUDGE_ID}&select=id`,
+        `${SUPABASE_URL}/rest/v1/scores?participant_id=eq.${participant.id}&judge_id=eq.${judgeId}&select=id`,
         {
           headers: { apikey: SUPABASE_API_KEY, Authorization: `Bearer ${SUPABASE_API_KEY}` },
         }
@@ -188,7 +198,7 @@ export default function QRScannerPage() {
       
       const payload = {
         participant_id: participant.id,
-        judge_id: LOGGED_IN_JUDGE_ID,
+        judge_id: judgeId,
         innovation_score: Number(innovation),
         impact_score: Number(impact),
         feasibility_score: Number(feasibility),
