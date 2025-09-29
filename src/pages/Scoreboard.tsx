@@ -164,7 +164,7 @@ export default function ScoreboardPage() {
               </div>
             )}
 
-            {/* Rest of the leaderboard */}
+            {/* Rest of the leaderboards in web*/}
             <div className="space-y-4">
               {scores.slice(3).map((item, index) => (
                 <motion.div
@@ -213,4 +213,5 @@ export default function ScoreboardPage() {
     </div>
   );
 }
+
 
