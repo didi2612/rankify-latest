@@ -61,6 +61,7 @@ function AppWrapper() {
           }
         />
 
+        {/* Navigate to scoreboard */}
         <Route
           path="/explore"
           element={
