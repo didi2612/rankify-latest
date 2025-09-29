@@ -8,6 +8,8 @@ import MyUploads from './pages/MyUpload';
 import QrPages from './pages/Qr';
 import AdminPages from './pages/Admin';
 
+import Scoreboard from './pages/Scoreboard';
+
 
 function AppWrapper() {
   const location = useLocation();
@@ -55,6 +57,16 @@ function AppWrapper() {
           element={
             <ProtectedRoute>
               <Profile />
+            </ProtectedRoute>
+          }
+        />
+
+        {/* Navigate to scoreboard */}
+        <Route
+          path="/explore"
+          element={
+            <ProtectedRoute>
+              <Scoreboard />
             </ProtectedRoute>
           }
         />
