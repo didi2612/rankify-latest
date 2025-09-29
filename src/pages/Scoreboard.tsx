@@ -54,7 +54,7 @@ export default function ScoreboardPage() {
 
         const data: Score[] = await res.json();
 
-        // Group by participant_id
+        // Group by participant id
         const grouped = Object.values(
           data.reduce((acc: any, score: Score) => {
             if (!acc[score.participant_id]) {
@@ -213,3 +213,4 @@ export default function ScoreboardPage() {
     </div>
   );
 }
+
