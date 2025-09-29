@@ -293,6 +293,12 @@ export default function Profile() {
                     <QrCode className="w-5 h-5" />
                     Evaluation
                 </Link>
+                <Link
+                  to="/explore"
+                  className="bg-yellow-400 hover:bg-yellow-300 text-black font-semibold px-6 py-3 rounded-xl shadow-lg transition-all duration-200"
+                >
+                    Scoreboard
+                </Link>
 
                 {/* Admin Link (Conditional) */}
                 {user.account_type === "SuperAdmin" && (
