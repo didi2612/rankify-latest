@@ -167,7 +167,7 @@ export default function Profile() {
 
   const isOrganizer = user.account_type === "Organisers" || user.account_type === "SuperAdmin";
   const isAdmin = user.account_type === "SuperAdmin";
-  const isJudge = user.account_type === "Judge";
+
 
   return (
     <div className="min-h-screen bg-gray-950 text-white px-6 py-16 font-sans relative overflow-hidden">
