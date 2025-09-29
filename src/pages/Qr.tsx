@@ -13,7 +13,21 @@ const SUPABASE_API_KEY =
 
 // TODO: Replace with the logged-in judge UUID from your auth system
 // Get logged-in judge username from cookies
-const LOGGED_IN_JUDGE_ID = Cookies.get("username") || "";
+// fetch the judge ui instead of username
+const fetchJudgeId = async (username: string) => {
+  const res = await fetch(
+    `${SUPABASE_URL}/rest/v1/judges?username=eq.${encodeURIComponent(username)}&select=id`,
+    {
+      headers: {
+        apikey: SUPABASE_API_KEY,
+        Authorization: `Bearer ${SUPABASE_API_KEY}`,
+      },
+    }
+  );
+  const data = await res.json();
+  return data.length > 0 ? data[0].id : null;
+};
+const LOGGED_IN_JUDGE_ID = await fetchJudgeId(Cookies.get("username") || "");
 
 
 // --- Custom Components for better readability and reusability ---
