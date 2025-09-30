@@ -32,6 +32,47 @@ export default function AdminPanel() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [accountType, setAccountType] = useState<string | null>(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [participants, setParticipants] = useState<any[]>([]);
+const [judges, setJudges] = useState<any[]>([]);
+const [editing, setEditing] = useState<{ rowId: string | null; col: string | null }>({
+  rowId: null,
+  col: null,
+});
+const [editValue, setEditValue] = useState("");
+
+
+
+const handleSaveScore = async (rowId: string, col: string, newValue: string) => {
+  try {
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/scores?id=eq.${rowId}`, {
+      method: "PATCH",
+      headers: {
+        "Content-Type": "application/json",
+        apikey: SUPABASE_API_KEY,
+        Authorization: `Bearer ${SUPABASE_API_KEY}`,
+        Prefer: "return=minimal",
+      },
+      body: JSON.stringify({ [col]: Number(newValue) }),
+    });
+
+    if (res.ok) {
+      // update local data instantly
+      setData((prev) =>
+        prev.map((row) =>
+          row.id === rowId ? { ...row, [col]: Number(newValue) } : row
+        )
+      );
+    } else {
+      console.error("Failed to update");
+    }
+  } catch (err) {
+    console.error(err);
+  } finally {
+    setEditing({ rowId: null, col: null });
+  }
+};
+
 
   // Helper to map table type to a display name
   const tableDisplayNames: Record<TableType, string> = {
@@ -39,6 +80,34 @@ export default function AdminPanel() {
     judges: "Judges",
     scores: "Scores",
   };
+useEffect(() => {
+  if (accountType === "SuperAdmin") {
+    fetchTableData(selectedTable);
+
+    // fetch participants
+    fetch(`${SUPABASE_URL}/rest/v1/participants?select=id,name`, {
+      headers: { apikey: SUPABASE_API_KEY, Authorization: `Bearer ${SUPABASE_API_KEY}` },
+    })
+      .then((res) => res.json())
+      .then(setParticipants);
+
+    // fetch judges
+    fetch(`${SUPABASE_URL}/rest/v1/judges?select=id,name`, {
+      headers: { apikey: SUPABASE_API_KEY, Authorization: `Bearer ${SUPABASE_API_KEY}` },
+    })
+      .then((res) => res.json())
+      .then(setJudges);
+  }
+}, [selectedTable, accountType]);
+const getParticipantName = (id: string) => {
+  const p = participants.find((x) => String(x.id) === String(id));
+  return p ? p.name : `ID ${id}`;
+};
+
+const getJudgeName = (id: string) => {
+  const j = judges.find((x) => String(x.id) === String(id));
+  return j ? j.name : `ID ${id}`;
+};
 
   // ------------------- Fetch user from cookie -------------------
   useEffect(() => {
@@ -300,6 +369,31 @@ export default function AdminPanel() {
             </button>
           </div>
         )}
+{/* Search Box */}
+<div className="flex justify-start mb-6">
+  <div className="relative w-full max-w-sm">
+    {/* Search Icon */}
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400 pointer-events-none"
+      fill="none"
+      viewBox="0 0 24 24"
+      stroke="currentColor"
+    >
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-4.35-4.35m0 0A7.5 7.5 0 104.5 4.5a7.5 7.5 0 0012.15 12.15z" />
+    </svg>
+
+    {/* Input */}
+    <input
+      type="text"
+      placeholder={`Search ${tableDisplayNames[selectedTable]}...`}
+      value={searchQuery}
+      onChange={(e) => setSearchQuery(e.target.value)}
+      className="w-full pl-10 pr-4 py-2 rounded-lg bg-gray-800 border border-gray-700 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-all shadow-sm hover:border-gray-600"
+    />
+  </div>
+</div>
+
 
         {/* Data Display Area */}
         {loading ? (
@@ -312,7 +406,13 @@ export default function AdminPanel() {
           </div>
         ) : selectedTable === "participants" ? (
           <div className="grid gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-            {data.map((row) => (
+           {data
+  .filter((row) =>
+    Object.values(row).some((val) =>
+     String(val).toLowerCase().includes(searchQuery.toLowerCase())
+    )
+  )
+  .map((row) => (
               <div
                 key={row.id}
                 className="bg-gray-800 border border-gray-700 rounded-xl p-6 shadow-xl transition-all duration-300 hover:shadow-amber-500/20"
@@ -351,7 +451,13 @@ export default function AdminPanel() {
           </div>
         ) : selectedTable === "judges" ? (
           <div className="grid gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-            {data.map((judge) => (
+      {data
+  .filter((judge) =>
+    Object.values(judge).some((val) =>
+      String(val).toLowerCase().includes(searchQuery.toLowerCase())
+    )
+  )
+  .map((judge) => (
               <div
                 key={judge.id}
                 className="bg-gray-800 border border-gray-700 rounded-xl p-6 shadow-xl transition-all duration-300 hover:shadow-amber-500/20 flex flex-col items-center text-center"
@@ -376,7 +482,26 @@ export default function AdminPanel() {
         ) : (
             // Scores Table: Clean, tabular presentation is often better, but keeping the card layout for consistency and simplicity.
           <div className="grid gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-            {data.map((row) => (
+            {data
+  .filter((row) => {
+    return tableColumns[selectedTable].some((col) => {
+      let value;
+
+      // resolve special columns
+      if (col === "participant_id") {
+        value = getParticipantName(row[col]); // 👈 use name instead of id
+      } else if (col === "judge_id") {
+        value = getJudgeName(row[col]);
+      } else {
+        value = row[col];
+      }
+
+      return String(value)
+        .toLowerCase()
+        .includes(searchQuery.toLowerCase());
+    });
+  })
+  .map((row) => (
               <div
                 key={row.id}
                 className="bg-gray-800 border border-gray-700 rounded-xl p-6 shadow-xl transition-all duration-300 hover:shadow-amber-500/20"
@@ -385,9 +510,59 @@ export default function AdminPanel() {
                 {tableColumns[selectedTable].map((col) => (
                   <div key={col} className="flex justify-between border-b border-gray-700/50 py-2 last:border-b-0">
                     <span className="text-gray-400 text-xs uppercase tracking-wider">{col.replace(/_/g, ' ')}</span>
-                    <p className={`text-white font-medium ${col.includes('score') ? 'text-lg text-blue-300' : 'text-sm'}`}>
-                      {row[col]}
-                    </p>
+                    <div className="flex items-center gap-2">
+  {editing.rowId === row.id && editing.col === col ? (
+    <>
+      <input
+        type="number"
+        value={editValue}
+        onChange={(e) => setEditValue(e.target.value)}
+        className="bg-gray-900 text-white border border-gray-700 rounded px-2 py-1 w-20"
+        autoFocus
+      />
+      <button
+        onClick={() => handleSaveScore(row.id, col, editValue)}
+        className="px-2 py-1 text-xs bg-green-600 hover:bg-green-700 text-white rounded"
+      >
+        Save
+      </button>
+      <button
+        onClick={() => setEditing({ rowId: null, col: null })}
+        className="px-2 py-1 text-xs bg-gray-600 hover:bg-gray-700 text-white rounded"
+      >
+        Cancel
+      </button>
+    </>
+  ) : (
+    <>
+      <span
+        className={`text-white font-medium ${
+          col.includes("score") ? "text-lg text-blue-300" : "text-sm"
+        }`}
+      >
+        {col === "participant_id"
+          ? getParticipantName(row[col])
+          : col === "judge_id"
+          ? getJudgeName(row[col])
+          : row[col]}
+      </span>
+      {col.includes("score") && (
+        <button
+          onClick={() => {
+            setEditing({ rowId: row.id, col });
+            setEditValue(row[col]);
+          }}
+          className="px-2 py-1 text-xs bg-amber-600 hover:bg-amber-700 text-white rounded"
+        >
+          Edit
+        </button>
+      )}
+    </>
+  )}
+</div>
+
+
+
                   </div>
                 ))}
                 {/* No delete button for scores as they should likely be updated, not deleted */}
