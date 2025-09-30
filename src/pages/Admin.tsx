@@ -41,7 +41,7 @@ const [editing, setEditing] = useState<{ rowId: string | null; col: string | nul
 });
 const [editValue, setEditValue] = useState("");
  const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 6; 
+  const itemsPerPage = 8; 
 
 // ------------------- Filtering and Pagination Logic -----
   const filteredData = data.filter((row) => {
