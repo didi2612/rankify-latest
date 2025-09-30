@@ -131,6 +131,7 @@ export default function QRScannerPage() {
   const [loading, setLoading] = useState(false);
   const [scores, setScores] = useState({ innovation: "", impact: "", feasibility: "", comments: "", market: "", publication: null as number | null, others: null as number | null});
   const navigate = useNavigate();
+  const [submitted, setSubmitted] = useState(false);
 
   // -------------------Handle QR from file -----------
   const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -201,6 +202,17 @@ export default function QRScannerPage() {
   // ------------------ Submit Scores ------------------
   const handleSubmitScores = async () => {
     if (!participant) return;
+
+    if (submitted) {
+      console.log("You already submitted");
+      return;
+    }
+
+    // 🚀 Do your actual submission logic here (e.g., Supabase insert)
+    console.log("Submitting scores...");
+
+    // Mark as submitted
+    setSubmitted(true);
 
     const { innovation, impact, feasibility, market, publication, others } = scores;
 
@@ -461,12 +473,12 @@ export default function QRScannerPage() {
                         </div>
                         
                         <button
-                            onClick={handleSubmitScores}
-                            className="w-full px-4 py-3 bg-blue-600 text-white rounded-lg font-bold text-lg hover:bg-blue-700 transition-colors duration-200 shadow-xl shadow-blue-500/40 flex items-center justify-center gap-2 disabled:opacity-50"
-                            disabled={!scores.innovation || !scores.impact || !scores.feasibility}
+                          onClick={handleSubmitScores}
+                          className="w-full px-4 py-3 bg-blue-600 text-white rounded-lg font-bold text-lg hover:bg-blue-700 transition-colors duration-200 shadow-xl shadow-blue-500/40 flex items-center justify-center gap-2 disabled:opacity-50"
+                          disabled={!scores.innovation || !scores.impact || !scores.feasibility}
                         >
-                            <Send className="w-5 h-5" />
-                            Finalize & Submit Scores
+                          <Send className="w-5 h-5" />
+                          {submitted ? "Already Submitted" : "Finalize & Submit Scores"}
                         </button>
                     </div>
                 )}
