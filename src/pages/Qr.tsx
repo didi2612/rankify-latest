@@ -131,6 +131,7 @@ export default function QRScannerPage() {
   const [judgeId, setJudgeId] = useState<string | null>(null);
   const [scores, setScores] = useState({ innovation: "", impact: "", feasibility: "", comments: "", market: "", publication: null as number | null, others: null as number | null});
   const navigate = useNavigate();
+  const [submitted, setSubmitted] = useState(false);
 
 
     useEffect(() => {
@@ -166,7 +167,7 @@ export default function QRScannerPage() {
         const res = await fetch(
           // Use `ilike` for case-insensitive search if supported by your RLS/DB configuration, 
           // but sticking to `eq` for safety based on original code
-          `${SUPABASE_URL}/rest/v1/participants?name=eq.${encodeURIComponent(scannedData)}&select=id,name,project_title,institution,category`,
+          `${SUPABASE_URL}/rest/v1/participants?id=eq.${encodeURIComponent(scannedData)}&select=id,name,project_title,institution,category`,
           {
             headers: {
               apikey: SUPABASE_API_KEY,
@@ -195,6 +196,17 @@ export default function QRScannerPage() {
   // ------------------ Submit Scores ------------------
   const handleSubmitScores = async () => {
     if (!participant) return;
+
+    if (submitted) {
+    console.log("You already submitted");
+    return;
+  }
+
+  // 🚀 Do your actual submission logic here (e.g., Supabase insert)
+  console.log("Submitting scores...");
+
+  // Mark as submitted
+  setSubmitted(true);
 
     const { innovation, impact, feasibility, market} = scores;
 
@@ -437,12 +449,12 @@ export default function QRScannerPage() {
                         </div>
                         
                         <button
-                            onClick={handleSubmitScores}
-                            className="w-full px-4 py-3 bg-blue-600 text-white rounded-lg font-bold text-lg hover:bg-blue-700 transition-colors duration-200 shadow-xl shadow-blue-500/40 flex items-center justify-center gap-2 disabled:opacity-50"
-                            disabled={!scores.innovation || !scores.impact || !scores.feasibility}
+                          onClick={handleSubmitScores}
+                          className="w-full px-4 py-3 bg-blue-600 text-white rounded-lg font-bold text-lg hover:bg-blue-700 transition-colors duration-200 shadow-xl shadow-blue-500/40 flex items-center justify-center gap-2 disabled:opacity-50"
+                          disabled={!scores.innovation || !scores.impact || !scores.feasibility}
                         >
-                            <Send className="w-5 h-5" />
-                            Finalize & Submit Scores
+                          <Send className="w-5 h-5" />
+                          {submitted ? "Already Submitted" : "Finalize & Submit Scores"}
                         </button>
                     </div>
                 )}
