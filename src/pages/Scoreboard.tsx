@@ -107,7 +107,7 @@ export default function ScoreboardPage() {
   return (
     <div className="min-h-screen bg-gray-950 text-white px-4 md:px-6 py-10 font-sans">
       <div className="max-w-4xl mx-auto">
-        <h1 className="text-3xl font-extrabold text-amber-400 mb-12 flex items-center gap-3">
+        <h1 className="text-3xl font-extrabold text-amber-400 mt-10 mb-12 flex items-center gap-3">
           <Trophy className="w-8 h-8 text-amber-500" />
           Leaderboards
         </h1>
