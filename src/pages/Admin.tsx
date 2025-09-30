@@ -3,7 +3,7 @@ import { toast } from "react-toastify";
 import Modal from "../components/Modal";
 import QRCode from "react-qr-code";
 import Cookies from "js-cookie";
-import { Menu, X, User, LogOut, Download, Trash2, PlusCircle, Server, Code } from "lucide-react"; // Importing professional icons
+import { Menu, X, User, LogOut, Download, Trash2, PlusCircle, Server, Code,ChevronLeft, ChevronRight  } from "lucide-react"; // Importing professional icons
 
 const SUPABASE_URL = "https://pftyzswxwkheomnqzytu.supabase.co";
 const SUPABASE_API_KEY =
@@ -40,8 +40,53 @@ const [editing, setEditing] = useState<{ rowId: string | null; col: string | nul
   col: null,
 });
 const [editValue, setEditValue] = useState("");
+ const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 6; 
 
+// ------------------- Filtering and Pagination Logic -------------------
+  const filteredData = data.filter((row) => {
+    if (!searchQuery) return true;
 
+    const query = searchQuery.toLowerCase();
+
+    switch (selectedTable) {
+      case "participants":
+        return (
+          row.name?.toLowerCase().includes(query) ||
+          row.email?.toLowerCase().includes(query) ||
+          row.event_name?.toLowerCase().includes(query) ||
+          row.category?.toLowerCase().includes(query)
+        );
+      case "judges":
+        return (
+          row.name?.toLowerCase().includes(query) ||
+          row.organisers?.toLowerCase().includes(query)
+        );
+      case "scores":
+        return (
+          row.participant_id?.toString().includes(query) ||
+          row.judge_id?.toString().includes(query) ||
+          row.comments?.toLowerCase().includes(query)
+        );
+      default:
+        return true;
+    }
+  });
+    const totalPages = Math.ceil(filteredData.length / itemsPerPage);
+  const paginatedData = filteredData.slice(
+    (currentPage - 1) * itemsPerPage,
+    currentPage * itemsPerPage
+  );
+  useEffect(() => {
+    // Reset page to 1 when search query or selected table changes
+    setCurrentPage(1);
+  }, [searchQuery, selectedTable]);
+
+  const handlePageChange = (page: number) => {
+    if (page >= 1 && page <= totalPages) {
+      setCurrentPage(page);
+    }
+  };
 
 const handleSaveScore = async (rowId: string, col: string, newValue: string) => {
   try {
@@ -406,7 +451,7 @@ const getJudgeName = (id: string) => {
           </div>
         ) : selectedTable === "participants" ? (
           <div className="grid gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-           {data
+           {paginatedData
   .filter((row) =>
     Object.values(row).some((val) =>
      String(val).toLowerCase().includes(searchQuery.toLowerCase())
@@ -450,126 +495,137 @@ const getJudgeName = (id: string) => {
             ))}
           </div>
         ) : selectedTable === "judges" ? (
-          <div className="grid gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-      {data
-  .filter((judge) =>
-    Object.values(judge).some((val) =>
-      String(val).toLowerCase().includes(searchQuery.toLowerCase())
-    )
-  )
-  .map((judge) => (
-              <div
-                key={judge.id}
-                className="bg-gray-800 border border-gray-700 rounded-xl p-6 shadow-xl transition-all duration-300 hover:shadow-amber-500/20 flex flex-col items-center text-center"
-              >
-                <img
-                  src={judge.avatar_url || "/default-avatar.png"}
-                  alt={judge.name}
-                  className="w-20 h-20 rounded-full border-4 border-amber-500 mb-4 object-cover shadow-lg"
-                />
-                <h3 className="text-white font-bold text-lg">{judge.name}</h3>
-                <p className="text-gray-300 text-sm">@{judge.username || "no_username"}</p>
-                <p className="text-gray-400 text-sm mb-4">{judge.email}</p>
-                <button
-                  onClick={() => handleDelete(judge.id)}
-                  className="mt-2 w-full max-w-[120px] px-4 py-2 rounded-lg bg-red-600 hover:bg-red-700 text-white font-medium transition shadow-md shadow-red-500/30"
-                >
-                  Delete
-                </button>
-              </div>
-            ))}
-          </div>
-        ) : (
-            // Scores Table: Clean, tabular presentation is often better, but keeping the card layout for consistency and simplicity.
-          <div className="grid gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-            {data
-  .filter((row) => {
-    return tableColumns[selectedTable].some((col) => {
-      let value;
-
-      // resolve special columns
-      if (col === "participant_id") {
-        value = getParticipantName(row[col]); // 👈 use name instead of id
-      } else if (col === "judge_id") {
-        value = getJudgeName(row[col]);
-      } else {
-        value = row[col];
-      }
-
-      return String(value)
-        .toLowerCase()
-        .includes(searchQuery.toLowerCase());
-    });
-  })
-  .map((row) => (
-              <div
-                key={row.id}
-                className="bg-gray-800 border border-gray-700 rounded-xl p-6 shadow-xl transition-all duration-300 hover:shadow-amber-500/20"
-              >
-                <h4 className="text-lg font-bold text-amber-400 mb-3">Score ID: {row.id}</h4>
-                {tableColumns[selectedTable].map((col) => (
-                  <div key={col} className="flex justify-between border-b border-gray-700/50 py-2 last:border-b-0">
-                    <span className="text-gray-400 text-xs uppercase tracking-wider">{col.replace(/_/g, ' ')}</span>
-                    <div className="flex items-center gap-2">
-  {editing.rowId === row.id && editing.col === col ? (
-    <>
-      <input
-        type="number"
-        value={editValue}
-        onChange={(e) => setEditValue(e.target.value)}
-        className="bg-gray-900 text-white border border-gray-700 rounded px-2 py-1 w-20"
-        autoFocus
-      />
-      <button
-        onClick={() => handleSaveScore(row.id, col, editValue)}
-        className="px-2 py-1 text-xs bg-green-600 hover:bg-green-700 text-white rounded"
+       
+  <div className="grid gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+    {paginatedData.map((judge) => (
+      <div
+        key={judge.id}
+        className="bg-gray-800 border border-gray-700 rounded-xl p-6 shadow-xl transition-all duration-300 hover:shadow-amber-500/20 flex flex-col items-center text-center"
       >
-        Save
-      </button>
-      <button
-        onClick={() => setEditing({ rowId: null, col: null })}
-        className="px-2 py-1 text-xs bg-gray-600 hover:bg-gray-700 text-white rounded"
-      >
-        Cancel
-      </button>
-    </>
-  ) : (
-    <>
-      <span
-        className={`text-white font-medium ${
-          col.includes("score") ? "text-lg text-blue-300" : "text-sm"
-        }`}
-      >
-        {col === "participant_id"
-          ? getParticipantName(row[col])
-          : col === "judge_id"
-          ? getJudgeName(row[col])
-          : row[col]}
-      </span>
-      {col.includes("score") && (
+        <img
+          src={judge.avatar_url || "/default-avatar.png"}
+          alt={judge.name}
+          className="w-20 h-20 rounded-full border-4 border-amber-500 mb-4 object-cover shadow-lg"
+        />
+        <h3 className="text-white font-bold text-lg">{judge.name}</h3>
+        <p className="text-gray-300 text-sm">@{judge.username || "no_username"}</p>
+        <p className="text-gray-400 text-sm mb-4">{judge.email}</p>
         <button
-          onClick={() => {
-            setEditing({ rowId: row.id, col });
-            setEditValue(row[col]);
-          }}
-          className="px-2 py-1 text-xs bg-amber-600 hover:bg-amber-700 text-white rounded"
+          onClick={() => handleDelete(judge.id)}
+          className="mt-2 w-full max-w-[120px] px-4 py-2 rounded-lg bg-red-600 hover:bg-red-700 text-white font-medium transition shadow-md shadow-red-500/30"
         >
-          Edit
+          Delete
         </button>
-      )}
-    </>
-  )}
-</div>
+      </div>
+    ))}
+  </div>
+) : (
+  /* --- Scores List --- */
+  <div className="grid gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+    {paginatedData.map((row) => (
+      <div
+        key={row.id}
+        className="bg-gray-800 border border-gray-700 rounded-xl p-6 shadow-xl transition-all duration-300 hover:shadow-amber-500/20"
+      >
+        <h4 className="text-lg font-bold text-amber-400 mb-3">
+          Score ID: {row.id}
+        </h4>
 
+        {tableColumns[selectedTable].map((col) => (
+          <div
+            key={col}
+            className="flex justify-between border-b border-gray-700/50 py-2 last:border-b-0"
+          >
+            <span className="text-gray-400 text-xs uppercase tracking-wider">
+              {col.replace(/_/g, " ")}
+            </span>
 
-
-                  </div>
-                ))}
-                {/* No delete button for scores as they should likely be updated, not deleted */}
-              </div>
-            ))}
+            <div className="flex items-center gap-2">
+              {editing.rowId === row.id && editing.col === col ? (
+                <>
+                  <input
+                    type="number"
+                    value={editValue}
+                    onChange={(e) => setEditValue(e.target.value)}
+                    className="bg-gray-900 text-white border border-gray-700 rounded px-2 py-1 w-20"
+                    autoFocus
+                  />
+                  <button
+                    onClick={() => handleSaveScore(row.id, col, editValue)}
+                    className="px-2 py-1 text-xs bg-green-600 hover:bg-green-700 text-white rounded"
+                  >
+                    Save
+                  </button>
+                  <button
+                    onClick={() => setEditing({ rowId: null, col: null })}
+                    className="px-2 py-1 text-xs bg-gray-600 hover:bg-gray-700 text-white rounded"
+                  >
+                    Cancel
+                  </button>
+                </>
+              ) : (
+                <>
+                  <span
+                    className={`text-white font-medium ${
+                      col.includes("score")
+                        ? "text-lg text-blue-300"
+                        : "text-sm"
+                    }`}
+                  >
+                    {col === "participant_id"
+                      ? getParticipantName(row[col])
+                      : col === "judge_id"
+                      ? getJudgeName(row[col])
+                      : row[col]}
+                  </span>
+                  {col.includes("score") && (
+                    <button
+                      onClick={() => {
+                        setEditing({ rowId: row.id, col });
+                        setEditValue(row[col]);
+                      }}
+                      className="px-2 py-1 text-xs bg-amber-600 hover:bg-amber-700 text-white rounded"
+                    >
+                      Edit
+                    </button>
+                  )}
+                </>
+              )}
+            </div>
           </div>
-        )}
+        ))}
+      </div>
+    ))}
+  </div>
+)}
+
+{/* --- Pagination Controls --- */}
+{totalPages > 1 && (
+  <div className="flex justify-center items-center space-x-2 mt-10">
+    {/* Previous Button */}
+    <button
+      onClick={() => handlePageChange(currentPage - 1)}
+      disabled={currentPage === 1}
+      className="px-4 py-2 rounded-lg bg-gray-800 border border-gray-700 text-white disabled:opacity-50 hover:bg-gray-700 transition duration-150 flex items-center gap-1"
+    >
+      <ChevronLeft className="w-4 h-4" /> Previous
+    </button>
+
+    <span className="text-white font-semibold px-4 py-2 rounded-lg bg-amber-500 shadow-md">
+      {currentPage}
+    </span>
+    <span className="text-gray-400">of {totalPages}</span>
+
+    {/* Next Button */}
+    <button
+      onClick={() => handlePageChange(currentPage + 1)}
+      disabled={currentPage === totalPages}
+      className="px-4 py-2 rounded-lg bg-gray-800 border border-gray-700 text-white disabled:opacity-50 hover:bg-gray-700 transition duration-150 flex items-center gap-1"
+    >
+      Next <ChevronRight className="w-4 h-4" />
+    </button>
+  </div>
+)}
 
         {/* Modal for Add New */}
         <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)}>
