@@ -29,8 +29,6 @@ const fetchJudgeId = async (username: string) => {
   const data = await res.json();
   return data.length > 0 ? data[0].id : null;
 };
-// const LOGGED_IN_JUDGE_ID = Cookies.get("username") || "";
-const LOGGED_IN_JUDGE_ID = await fetchJudgeId(Cookies.get("username") || "");
 
 
 // --- Custom Components for better readability and reusability ---
