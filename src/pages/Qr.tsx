@@ -13,7 +13,7 @@ const SUPABASE_URL = "https://pftyzswxwkheomnqzytu.supabase.co";
 const SUPABASE_API_KEY =
   "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBmdHl6c3d4d2toZW9tbnF6eXR1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTM3NjczNzksImV4cCI6MjA2OTM0MzM3OX0.TI9DGipYP9X8dSZSUh5CVQIbeYnf9vhNXAqw5e5ZVkk";
 
-// TODO: Replace with the logged-in judge UUID from your auth system
+// TODO: Replace with the logged-in judge UUID from your
 // Get logged-in judge username from cookies
 // fetch the judge ui instead of username
 const fetchJudgeId = async (username: string) => {
