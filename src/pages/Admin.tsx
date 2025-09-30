@@ -473,16 +473,24 @@ const getJudgeName = (id: string) => {
                 
                 <div className="mt-4 flex justify-between items-center gap-4 border-t border-gray-700 pt-4">
                   <div className="flex flex-col items-center">
-                    <QRCode id={`qr-${row.id}`} value={`${row.id}`} size={70} bgColor="#ffffff" fgColor="#000000" />
-                    <p className="text-gray-500 text-xs mt-1">ID: {row.id}</p>
-                  </div>
-                  <div className="flex flex-col gap-2">
-                    <button
-                      onClick={() => downloadQRCode(row.name, `${row.name.replace(/\s/g, '_')}_QR.png`)}
-                      className="flex items-center justify-center gap-1 px-3 py-1 text-sm rounded-md bg-green-600 hover:bg-green-700 text-white font-medium transition"
-                    >
-                      <Download className="w-4 h-4" /> Download QR
-                    </button>
+    <QRCode
+      id={`qr-${row.id}`}
+      value={`${row.id}`}
+      size={70}
+      bgColor="#ffffff"
+      fgColor="#000000"
+    />
+    <p className="text-gray-500 text-xs mt-1">ID: {row.id}</p>
+  </div>
+  <div className="flex flex-col gap-2">
+    <button
+      onClick={() =>
+        downloadQRCode(row.id, `${row.name.replace(/\s/g, "_")}_QR.png`)
+      }
+      className="flex items-center justify-center gap-1 px-3 py-1 text-sm rounded-md bg-green-600 hover:bg-green-700 text-white font-medium transition"
+    >
+      <Download className="w-4 h-4" /> Download QR
+    </button>
                     <button
                       onClick={() => handleDelete(row.id)}
                       className="flex items-center justify-center gap-1 px-3 py-1 text-sm rounded-md bg-red-600 hover:bg-red-700 text-white font-medium transition"
