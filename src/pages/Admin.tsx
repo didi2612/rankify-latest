@@ -43,7 +43,7 @@ const [editValue, setEditValue] = useState("");
  const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 6; 
 
-// ------------------- Filtering and Pagination Logic -------------------
+// ------------------- Filtering and Pagination Logic -----
   const filteredData = data.filter((row) => {
     if (!searchQuery) return true;
 
