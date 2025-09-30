@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import BarcodeScannerComponent from "react-qr-barcode-scanner";
-import { ArrowLeft, QrCode, Copy, User, Zap, Star, TrendingUp, Send, Loader2, ImageIcon } from "lucide-react"; // Added MessageSquare, Loader2
+import { ArrowLeft, QrCode, Copy, User, Zap, Star, TrendingUp, Send, Loader2 } from "lucide-react"; // Added MessageSquare, Loader2
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { toast } from "react-toastify";
