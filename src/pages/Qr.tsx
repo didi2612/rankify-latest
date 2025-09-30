@@ -1,12 +1,11 @@
 import { useState, useEffect } from "react";
 import BarcodeScannerComponent from "react-qr-barcode-scanner";
-import { ArrowLeft, QrCode, Copy, User, Zap, Star, TrendingUp, Send, Loader2, ImageIcon } from "lucide-react"; // Added MessageSquare, Loader2
+import { ArrowLeft, QrCode, Copy, User, Zap, Star, TrendingUp, Send, Loader2 } from "lucide-react"; // Added MessageSquare, Loader2
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { toast } from "react-toastify";
 import Cookies from "js-cookie";
 
-import QrScanner from "qr-scanner";
 
 
 const SUPABASE_URL = "https://pftyzswxwkheomnqzytu.supabase.co";
@@ -129,28 +128,23 @@ export default function QRScannerPage() {
   const [scannedData, setScannedData] = useState<string | null>(null);
   const [participant, setParticipant] = useState<any>(null);
   const [loading, setLoading] = useState(false);
+  const [judgeId, setJudgeId] = useState<string | null>(null);
   const [scores, setScores] = useState({ innovation: "", impact: "", feasibility: "", comments: "", market: "", publication: null as number | null, others: null as number | null});
   const navigate = useNavigate();
   const [submitted, setSubmitted] = useState(false);
 
-  // -------------------Handle QR from file -----------
-  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
 
-    try {
-      const result = await QrScanner.scanImage(file, { returnDetailedScanResult: true });
-      if (result?.data) {
-        setScannedData(result.data);
-        toast.success("QR Code decoded from file! 🎉");
-      } else {
-        toast.error("No QR code found in the image.");
-      }
-    } catch (err) {
-      console.error("File QR scan error:", err);
-      toast.error("Failed to read QR code from the file.");
-    }
-  };
+    useEffect(() => {
+    const loadJudgeId = async () => {
+      const username = Cookies.get("username") || "";
+      if (!username) return;
+      const id = await fetchJudgeId(username);
+      setJudgeId(id);
+    };
+    loadJudgeId();
+  }, []);
+  // -------------------Handle QR from file -----------
+ 
 
   // ------------------ Copy QR text ------------------
   const handleCopy = () => {
@@ -173,7 +167,7 @@ export default function QRScannerPage() {
         const res = await fetch(
           // Use `ilike` for case-insensitive search if supported by your RLS/DB configuration, 
           // but sticking to `eq` for safety based on original code
-          `${SUPABASE_URL}/rest/v1/participants?name=eq.${encodeURIComponent(scannedData)}&select=id,name,project_title,institution,category`,
+          `${SUPABASE_URL}/rest/v1/participants?id=eq.${encodeURIComponent(scannedData)}&select=id,name,project_title,institution,category`,
           {
             headers: {
               apikey: SUPABASE_API_KEY,
@@ -204,17 +198,17 @@ export default function QRScannerPage() {
     if (!participant) return;
 
     if (submitted) {
-      console.log("You already submitted");
-      return;
-    }
+    console.log("You already submitted");
+    return;
+  }
 
-    // 🚀 Do your actual submission logic here (e.g., Supabase insert)
-    console.log("Submitting scores...");
+  // 🚀 Do your actual submission logic here (e.g., Supabase insert)
+  console.log("Submitting scores...");
 
-    // Mark as submitted
-    setSubmitted(true);
+  // Mark as submitted
+  setSubmitted(true);
 
-    const { innovation, impact, feasibility, market, publication, others } = scores;
+    const { innovation, impact, feasibility, market} = scores;
 
     // Validate scores 0-10
     const scoreFields = [
@@ -252,17 +246,12 @@ export default function QRScannerPage() {
         }
     }
 
-    if (LOGGED_IN_JUDGE_ID === "<uuid-of-logged-in-judge>") {
-        toast.error("CONFIGURATION ERROR: Judge ID is not set.", {
-            autoClose: 8000
-        });
-        return;
-    }
+    
 
     try {
       // Check for existing score
       const existingScoreRes = await fetch(
-        `${SUPABASE_URL}/rest/v1/scores?participant_id=eq.${participant.id}&judge_id=eq.${LOGGED_IN_JUDGE_ID}&select=id`,
+        `${SUPABASE_URL}/rest/v1/scores?participant_id=eq.${participant.id}&judge_id=eq.${judgeId}&select=id`,
         {
           headers: { apikey: SUPABASE_API_KEY, Authorization: `Bearer ${SUPABASE_API_KEY}` },
         }
@@ -271,7 +260,7 @@ export default function QRScannerPage() {
       
       const payload = {
         participant_id: participant.id,
-        judge_id: LOGGED_IN_JUDGE_ID,
+        judge_id: judgeId,
         innovation_score: Number(innovation),
         impact_score: Number(impact),
         feasibility_score: Number(feasibility),
@@ -369,20 +358,7 @@ export default function QRScannerPage() {
           </div>
 
           {/* Scan from file */}
-          <div className="mt-4 text-center">
-            <label className="inline-flex items-center gap-2 px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white text-sm font-medium rounded-lg cursor-pointer transition">
-              <ImageIcon className="w-4 h-4" />
-              Upload QR from File
-              <input
-                type="file"
-                accept="image/png, image/jpeg"
-                onChange={handleFileUpload}
-                className="hidden"
-              />
-            </label>
-            <p className="text-gray-400 text-xs mt-2">Supports PNG/JPG QR codes</p>
-          </div>
-
+          
 
           {/* Result Area */}
           <div className="mt-6 text-center w-full">
