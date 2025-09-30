@@ -1,15 +1,17 @@
 import { useState, useEffect } from "react";
 import BarcodeScannerComponent from "react-qr-barcode-scanner";
-import { ArrowLeft, QrCode, Copy, User, Zap, Star, TrendingUp, Send, Loader2, MessageSquare } from "lucide-react"; // Added MessageSquare, Loader2
+import { ArrowLeft, QrCode, Copy, User, Zap, Star, TrendingUp, Send, Loader2, ImageIcon } from "lucide-react"; // Added MessageSquare, Loader2
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { toast } from "react-toastify";
 import Cookies from "js-cookie";
 
+import QrScanner from "qr-scanner";
+
 
 const SUPABASE_URL = "https://pftyzswxwkheomnqzytu.supabase.co";
 const SUPABASE_API_KEY =
-  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBmdHl6c3d4d2toZW9tbnF6eXR1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTM3NjczNzksImV4cCI6MjA2OTM0MzM3OX0.TI9DGipYP9X8dSZSUh5CVQIbeYnf9vhNXKqw5e5ZVkk";
+  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBmdHl6c3d4d2toZW9tbnF6eXR1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTM3NjczNzksImV4cCI6MjA2OTM0MzM3OX0.TI9DGipYP9X8dSZSUh5CVQIbeYnf9vhNXAqw5e5ZVkk";
 
 // TODO: Replace with the logged-in judge UUID from your auth system
 // Get logged-in judge username from cookies
@@ -27,6 +29,7 @@ const fetchJudgeId = async (username: string) => {
   const data = await res.json();
   return data.length > 0 ? data[0].id : null;
 };
+// const LOGGED_IN_JUDGE_ID = Cookies.get("username") || "";
 const LOGGED_IN_JUDGE_ID = await fetchJudgeId(Cookies.get("username") || "");
 
 
@@ -37,6 +40,13 @@ interface ScoreInputProps {
     value: string;
     onChange: (value: string) => void;
     icon: React.ReactNode;
+}
+
+interface CheckBoxInputProps {
+  label: string;
+  value: number | null; // 2.5 = Yes, 0 = No, null = not selected yet
+  onChange: (value: number) => void;
+  icon: React.ReactNode;
 }
 
 // Enhanced Score Input with better visual separation and hover effects
@@ -66,6 +76,34 @@ const ScoreInput: React.FC<ScoreInputProps> = ({ label, value, onChange, icon })
     </div>
 );
 
+const CheckBoxInput: React.FC<CheckBoxInputProps> = ({ label, value, onChange, icon }) => (
+  <div className="flex flex-col">
+    <label className="text-gray-400 text-xs font-semibold uppercase tracking-wider mb-1 flex items-center gap-1">
+      {icon} {label}
+    </label>
+    <div className="flex items-center gap-4 bg-gray-700 border border-gray-700 rounded-lg px-4 py-2">
+      <label className="flex items-center gap-2 cursor-pointer">
+        <input
+          type="radio"
+          checked={value === 2.5}
+          onChange={() => onChange(2.5)}
+          className="form-radio text-blue-500"
+        />
+        <span className="text-white">Yes (2.5)</span>
+      </label>
+      <label className="flex items-center gap-2 cursor-pointer">
+        <input
+          type="radio"
+          checked={value === 0}
+          onChange={() => onChange(0)}
+          className="form-radio text-blue-500"
+        />
+        <span className="text-white">No (0)</span>
+      </label>
+    </div>
+  </div>
+);
+
 interface ParticipantCardProps {
     participant: any;
 }
@@ -93,8 +131,27 @@ export default function QRScannerPage() {
   const [scannedData, setScannedData] = useState<string | null>(null);
   const [participant, setParticipant] = useState<any>(null);
   const [loading, setLoading] = useState(false);
-  const [scores, setScores] = useState({ innovation: "", impact: "", feasibility: "", comments: "" }); // Added comments
+  const [scores, setScores] = useState({ innovation: "", impact: "", feasibility: "", comments: "", market: "", publication: null as number | null, others: null as number | null});
   const navigate = useNavigate();
+
+  // -------------------Handle QR from file -----------
+  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    try {
+      const result = await QrScanner.scanImage(file, { returnDetailedScanResult: true });
+      if (result?.data) {
+        setScannedData(result.data);
+        toast.success("QR Code decoded from file! 🎉");
+      } else {
+        toast.error("No QR code found in the image.");
+      }
+    } catch (err) {
+      console.error("File QR scan error:", err);
+      toast.error("Failed to read QR code from the file.");
+    }
+  };
 
   // ------------------ Copy QR text ------------------
   const handleCopy = () => {
@@ -111,7 +168,7 @@ export default function QRScannerPage() {
     const fetchParticipant = async () => {
       setLoading(true);
       setParticipant(null); // Clear previous participant data
-      setScores({ innovation: "", impact: "", feasibility: "", comments: "" }); // Clear previous scores
+      setScores({ innovation: "", impact: "", feasibility: "", comments: "", market: "", publication: null, others: null }); // Clear previous scores
 
       try {
         const res = await fetch(
@@ -147,14 +204,30 @@ export default function QRScannerPage() {
   const handleSubmitScores = async () => {
     if (!participant) return;
 
-    const { innovation, impact, feasibility, comments } = scores;
+    const { innovation, impact, feasibility, market, publication, others } = scores;
 
     // Validate scores 0-10
     const scoreFields = [
       { key: 'Innovation', value: innovation },
       { key: 'Impact', value: impact },
       { key: 'Feasibility', value: feasibility },
+      { key: "Market", value: market },
     ];
+
+    let errors: string[] = [];
+    for (const field of scoreFields) {
+      if (field.key === "Publication" || field.key === "Others") {
+        // ✅ only check if they are null (not chosen yet)
+        if (field.value === null || field.value === undefined) {
+          errors.push(`${field.key} must be selected (Yes or No).`);
+        }
+      } else {
+        // ✅ normal numeric range validation (0–10)
+        if (isNaN(Number(field.value)) || Number(field.value) < 0 || Number(field.value) > 10) {
+          errors.push(`${field.key} must be a number between 0 and 10.`);
+        }
+      }
+    }
 
     for (const field of scoreFields) {
         const numValue = Number(field.value);
@@ -192,7 +265,15 @@ export default function QRScannerPage() {
         innovation_score: Number(innovation),
         impact_score: Number(impact),
         feasibility_score: Number(feasibility),
-        comments: comments || null,
+        market_score: Number(scores.market),
+        publication_score:
+          participant?.category?.toLowerCase() === "pg"
+            ? scores.publication ?? 0
+            : null,
+        others_score:
+          participant?.category?.toLowerCase() === "pg"
+            ? scores.others ?? 0
+            : null,
       };
 
       let res;
@@ -225,7 +306,7 @@ export default function QRScannerPage() {
       if (res.ok) {
         const action = existingScore.length > 0 ? "updated" : "submitted";
         toast.success(`Scores successfully ${action} for ${participant.name}! 🎉`);
-        setScores({ innovation: "", impact: "", feasibility: "", comments: "" });
+        setScores({ innovation: "", impact: "", feasibility: "", comments: "", market: "", publication: null, others: null });
         setScannedData(null);
         setParticipant(null);
       } else {
@@ -277,6 +358,22 @@ export default function QRScannerPage() {
             />
           </div>
 
+          {/* Scan from file */}
+          <div className="mt-4 text-center">
+            <label className="inline-flex items-center gap-2 px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white text-sm font-medium rounded-lg cursor-pointer transition">
+              <ImageIcon className="w-4 h-4" />
+              Upload QR from File
+              <input
+                type="file"
+                accept="image/png, image/jpeg"
+                onChange={handleFileUpload}
+                className="hidden"
+              />
+            </label>
+            <p className="text-gray-400 text-xs mt-2">Supports PNG/JPG QR codes</p>
+          </div>
+
+
           {/* Result Area */}
           <div className="mt-6 text-center w-full">
             {scannedData && (
@@ -322,37 +419,47 @@ export default function QRScannerPage() {
                         {/* Score Inputs */}
                         <div className="grid gap-4 mb-6">
                             <ScoreInput
-                                label="Innovation & Originality"
+                                label="Novelty and Inventiveness"
                                 value={scores.innovation}
                                 onChange={(value) => setScores({ ...scores, innovation: value })}
                                 icon={<Zap className="w-5 h-5" />}
                             />
                             <ScoreInput
-                                label="Impact & Relevance"
+                                label="Usefulness and Application"
                                 value={scores.impact}
                                 onChange={(value) => setScores({ ...scores, impact: value })}
                                 icon={<TrendingUp className="w-5 h-5" />}
                             />
                             <ScoreInput
-                                label="Technical Feasibility"
+                                label="Presentation and Demonstration"
                                 value={scores.feasibility}
                                 onChange={(value) => setScores({ ...scores, feasibility: value })}
                                 icon={<Star className="w-5 h-5" />}
                             />
+                            <ScoreInput
+                                label="Market and Commercial Potential"
+                                value={scores.market}
+                                onChange={(value) => setScores({ ...scores, market: value })}
+                                icon={<Star className="w-5 h-5" />}
+                            />
                             
-                            {/* Comment Box for professionalism */}
-                            <div className="flex flex-col">
-                                <label className="text-gray-400 text-xs font-semibold uppercase tracking-wider mb-1 flex items-center gap-1">
-                                    <MessageSquare className="w-4 h-4"/> Comments (Optional)
-                                </label>
-                                <textarea
-                                    placeholder="Enter your qualitative feedback here..."
-                                    value={scores.comments}
-                                    onChange={(e) => setScores({ ...scores, comments: e.target.value })}
-                                    className="w-full bg-gray-800/70 border border-gray-700 rounded-lg px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
-                                    rows={3}
+                            {/* Show extra fields ONLY if category is pg */}
+                            {participant?.category?.toLowerCase() === "pg" && (
+                              <>
+                                <CheckBoxInput
+                                  label="Publication"
+                                  value={scores.publication}
+                                  onChange={(value) => setScores({ ...scores, publication: value })}
+                                  icon={<Star className="w-5 h-5" />}
                                 />
-                            </div>
+                                <CheckBoxInput
+                                  label="Any LOI, NDA, MoU or MoA"
+                                  value={scores.others}
+                                  onChange={(value) => setScores({ ...scores, others: value })}
+                                  icon={<Star className="w-5 h-5" />}
+                                />
+                              </>
+                            )}
                         </div>
                         
                         <button
