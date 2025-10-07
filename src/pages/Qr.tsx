@@ -167,7 +167,7 @@ export default function QRScannerPage() {
         const res = await fetch(
           // Use `ilike` for case-insensitive search if supported by your RLS/DB configuration, 
           // but sticking to `eq` for safety based on original code
-          `${SUPABASE_URL}/rest/v1/participants?id=eq.${encodeURIComponent(scannedData)}&select=id,name,project_title,institution,category`,
+          `${SUPABASE_URL}/rest/v1/participants?name=eq.${encodeURIComponent(scannedData)}&select=id,name,project_title,institution,category`,
           {
             headers: {
               apikey: SUPABASE_API_KEY,
