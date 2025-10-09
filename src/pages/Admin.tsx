@@ -42,6 +42,15 @@ const [editing, setEditing] = useState<{ rowId: string | null; col: string | nul
 const [editValue, setEditValue] = useState("");
  const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 8; 
+const getParticipantName = (id: string) => {
+  const p = participants.find((x) => String(x.id) === String(id));
+  return p ? p.name : `ID ${id}`;
+};
+
+const getJudgeName = (id: string) => {
+  const j = judges.find((x) => String(x.id) === String(id));
+  return j ? j.name : `ID ${id}`;
+};
 
 // ------------------- Filtering and Pagination Logic -----
   const filteredData = data.filter((row) => {
@@ -63,11 +72,14 @@ const [editValue, setEditValue] = useState("");
           row.organisers?.toLowerCase().includes(query)
         );
       case "scores":
-        return (
-          row.participant_id?.toString().includes(query) ||
-          row.judge_id?.toString().includes(query) ||
-          row.comments?.toLowerCase().includes(query)
-        );
+  const participantName = getParticipantName(row.participant_id).toLowerCase();
+  const judgeName = getJudgeName(row.judge_id).toLowerCase();
+  return (
+    participantName.includes(query) ||
+    judgeName.includes(query) ||
+    row.comments?.toLowerCase().includes(query)
+  );
+
       default:
         return true;
     }
@@ -144,15 +156,7 @@ useEffect(() => {
       .then(setJudges);
   }
 }, [selectedTable, accountType]);
-const getParticipantName = (id: string) => {
-  const p = participants.find((x) => String(x.id) === String(id));
-  return p ? p.name : `ID ${id}`;
-};
 
-const getJudgeName = (id: string) => {
-  const j = judges.find((x) => String(x.id) === String(id));
-  return j ? j.name : `ID ${id}`;
-};
 
   // ------------------- Fetch user from cookie -------------------
   useEffect(() => {
