@@ -315,15 +315,26 @@ export default function Profile() {
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 
                 {/* Admin Panel Link (SuperAdmin/Organisers only) */}
-                {(isAdmin || isOrganizer) && (
-                    <Link
-                        to="/admin"
-                        className="flex flex-col items-center justify-center p-4 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-medium transition-transform transform hover:scale-[1.03] shadow-lg shadow-blue-500/30"
-                    >
-                        <Shield className="w-6 h-6 mb-1"/>
-                        <span className="text-sm text-center">Admin Panel</span>
-                    </Link>
-                )}
+              {(isAdmin || isOrganizer) && (
+  <>
+    <Link
+      to="/admin"
+      className="flex flex-col items-center justify-center p-4 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-medium transition-transform transform hover:scale-[1.03] shadow-lg shadow-blue-500/30"
+    >
+      <Shield className="w-6 h-6 mb-1" />
+      <span className="text-sm text-center">Admin Panel</span>
+    </Link>
+
+    <Link
+      to="/explore"
+      className="flex flex-col items-center justify-center p-4 rounded-xl bg-green-600 hover:bg-green-700 text-white font-medium transition-transform transform hover:scale-[1.03] shadow-lg shadow-green-500/30"
+    >
+      <TrendingUp className="w-6 h-6 mb-1" />
+      <span className="text-sm text-center">Scoreboard</span>
+    </Link>
+  </>
+)}
+
                 
                 {/* Evaluation Link (All Users) */}
                 <Link
@@ -335,13 +346,7 @@ export default function Profile() {
                 </Link>
 
                 {/* Scoreboard Link (All Users) */}
-                <Link
-                    to="/explore"
-                    className="flex flex-col items-center justify-center p-4 rounded-xl bg-green-600 hover:bg-green-700 text-white font-medium transition-transform transform hover:scale-[1.03] shadow-lg shadow-green-500/30"
-                >
-                    <TrendingUp className="w-6 h-6 mb-1"/>
-                    <span className="text-sm text-center">Scoreboard</span>
-                </Link>
+                
                 
                 {/* Log Out Button */}
                 <button
