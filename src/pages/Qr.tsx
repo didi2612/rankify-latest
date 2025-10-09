@@ -5,8 +5,8 @@ import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { toast } from "react-toastify";
 import Cookies from "js-cookie";
-import QrScanner from "qr-scanner";
-import React from "react";
+
+
 
 const SUPABASE_URL = "https://pftyzswxwkheomnqzytu.supabase.co";
 const SUPABASE_API_KEY =
@@ -132,26 +132,7 @@ export default function QRScannerPage() {
   const [scores, setScores] = useState({ innovation: "", impact: "", feasibility: "", comments: "", market: "", publication: null as number | null, others: null as number | null});
   const navigate = useNavigate();
   const [submitted, setSubmitted] = useState(false);
-  const fileInputRef = React.useRef<HTMLInputElement | null>(null);
 
-
-  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
-
-    try {
-      const result = await QrScanner.scanImage(file, { returnDetailedScanResult: true });
-      if (result?.data) {
-        setScannedData(result.data);
-        toast.success("QR Code successfully scanned from file! 🎉");
-      } else {
-        toast.error("No QR code detected in this image.");
-      }
-    } catch (err) {
-      console.error("QR file scan error:", err);
-      toast.error("Failed to read QR code from file.");
-    }
-  };
 
     useEffect(() => {
     const loadJudgeId = async () => {
@@ -162,6 +143,8 @@ export default function QRScannerPage() {
     };
     loadJudgeId();
   }, []);
+  // -------------------Handle QR from file -----------
+ 
 
   // ------------------ Copy QR text ------------------
   const handleCopy = () => {
@@ -177,12 +160,14 @@ export default function QRScannerPage() {
 
     const fetchParticipant = async () => {
       setLoading(true);
-      setParticipant(null);
-      setScores({ innovation: "", impact: "", feasibility: "", comments: "", market: "", publication: null, others: null });
+      setParticipant(null); // Clear previous participant data
+      setScores({ innovation: "", impact: "", feasibility: "", comments: "", market: "", publication: null, others: null }); // Clear previous scores
 
       try {
         const res = await fetch(
-          `${SUPABASE_URL}/rest/v1/participants?name=eq.${encodeURIComponent(scannedData)}&select=id,name,project_title,institution,category`,
+          // Use `ilike` for case-insensitive search if supported by your RLS/DB configuration, 
+          // but sticking to `eq` for safety based on original code
+          `${SUPABASE_URL}/rest/v1/participants?id=eq.${encodeURIComponent(scannedData)}&select=id,name,project_title,institution,category`,
           {
             headers: {
               apikey: SUPABASE_API_KEY,
@@ -191,47 +176,9 @@ export default function QRScannerPage() {
           }
         );
         const result = await res.json();
-
         if (result.length > 0) {
-          const participantData = result[0];
-          setParticipant(participantData);
-
-          // 🔎 Check if judge already submitted score
-          if (judgeId) {
-            const scoreRes = await fetch(
-              `${SUPABASE_URL}/rest/v1/scores?participant_id=eq.${participantData.id}&judge_id=eq.${judgeId}&select=*`,
-              {
-                headers: {
-                  apikey: SUPABASE_API_KEY,
-                  Authorization: `Bearer ${SUPABASE_API_KEY}`,
-                },
-              }
-            );
-            const scoreData = await scoreRes.json();
-
-            if (scoreData.length > 0) {
-              // Already submitted
-              setSubmitted(true);
-              toast.info(`You already submitted scores for ${participantData.name}`);
-              // (Optional) load existing scores into state so judge can see them
-              const existing = scoreData[0];
-              setScores({
-                innovation: String(existing.innovation_score ?? ""),
-                impact: String(existing.impact_score ?? ""),
-                feasibility: String(existing.feasibility_score ?? ""),
-                comments: existing.comments ?? "",
-                market: String(existing.market_score ?? ""),
-                publication: existing.publication_score,
-                others: existing.others_score,
-              });
-              toast.info(`You already submitted scores for ${participantData.name}`);
-            } else {
-              // Not submitted yet
-              setSubmitted(false);
-            }
-          }
-
-          toast.success(`Participant found: ${participantData.name}`);
+          setParticipant(result[0]);
+          toast.success(`Participant found: ${result[0].name}`);
         } else {
           toast.error("Participant not found. Check the QR code content.");
           setParticipant(null);
@@ -304,7 +251,7 @@ export default function QRScannerPage() {
     try {
       // Check for existing score
       const existingScoreRes = await fetch(
-        `${SUPABASE_URL}/rest/v1/scores?participant_name=eq.${participant.id}&judge_id=eq.${judgeId}&select=id`,
+        `${SUPABASE_URL}/rest/v1/scores?participant_id=eq.${participant.id}&judge_id=eq.${judgeId}&select=id`,
         {
           headers: { apikey: SUPABASE_API_KEY, Authorization: `Bearer ${SUPABASE_API_KEY}` },
         }
@@ -410,22 +357,8 @@ export default function QRScannerPage() {
             />
           </div>
 
-          {/* File Upload Button */}
-          <div className="mt-4 text-center">
-            <button
-              onClick={() => fileInputRef.current?.click()}
-              className="px-4 py-2 bg-amber-600 text-white rounded-lg font-semibold hover:bg-amber-700 transition-colors"
-            >
-              Upload QR Image (PNG/JPG)
-            </button>
-            <input
-              type="file"
-              accept="image/png, image/jpeg"
-              ref={fileInputRef}
-              onChange={handleFileUpload}
-              className="hidden"
-            />
-          </div>
+          {/* Scan from file */}
+          
 
           {/* Result Area */}
           <div className="mt-6 text-center w-full">
@@ -514,21 +447,15 @@ export default function QRScannerPage() {
                               </>
                             )}
                         </div>
-
-                        {submitted ? (
-                          <div className="p-4 text-center bg-green-100 text-green-700 rounded-lg font-semibold">
-                            ✅ You already submitted scores for this participant
-                          </div>
-                        ) : (
-                          <button
-                            onClick={handleSubmitScores}
-                            className="w-full px-4 py-3 bg-blue-600 text-white rounded-lg font-bold text-lg hover:bg-blue-700 transition-colors duration-200 shadow-xl shadow-blue-500/40 flex items-center justify-center gap-2 disabled:opacity-50"
-                            disabled={!scores.innovation || !scores.impact || !scores.feasibility}
-                          >
-                            <Send className="w-5 h-5" />
-                            Finalize & Submit Scores
-                          </button>
-                        )}
+                        
+                        <button
+                          onClick={handleSubmitScores}
+                          className="w-full px-4 py-3 bg-blue-600 text-white rounded-lg font-bold text-lg hover:bg-blue-700 transition-colors duration-200 shadow-xl shadow-blue-500/40 flex items-center justify-center gap-2 disabled:opacity-50"
+                          disabled={!scores.innovation || !scores.impact || !scores.feasibility}
+                        >
+                          <Send className="w-5 h-5" />
+                          {submitted ? "Already Submitted" : "Finalize & Submit Scores"}
+                        </button>
                     </div>
                 )}
             </motion.div>
