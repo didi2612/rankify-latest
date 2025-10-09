@@ -11,6 +11,9 @@ interface Score {
   innovation_score: number;
   impact_score: number;
   feasibility_score: number;
+  market_score: number;
+  publication_score: number;
+  others_score: number;
   participant: {
     id: string;
     name: string;
@@ -34,12 +37,18 @@ export default function ScoreboardPage() {
   const [selectedCategory, setSelectedCategory] = useState("FYP");
 
   const categories = ["FYP", "IDP", "Community Services", "PG"];
+  const catKey = selectedCategory.toLowerCase();
+  const catScores = scores[catKey] || [];
+
+  const getMaxScore = (category: string) => {
+    return category.toLowerCase() === "pg" ? 45 : 40;
+  };
 
   useEffect(() => {
     const fetchScores = async () => {
       try {
         const res = await fetch(
-          `${SUPABASE_URL}/rest/v1/scores?select=participant_id,innovation_score,impact_score,feasibility_score,participant:participant_id(id,name,project_title,institution,category)`,
+          `${SUPABASE_URL}/rest/v1/scores?select=participant_id,innovation_score,impact_score,feasibility_score,market_score,publication_score,others_score,participant:participant_id(id,name,project_title,institution,category)`,
           {
             headers: {
               apikey: SUPABASE_API_KEY,
@@ -51,27 +60,62 @@ export default function ScoreboardPage() {
         const data: Score[] = await res.json();
 
         const grouped = Object.values(
-          data.reduce((acc: any, score: Score) => {
+          data.reduce((acc: any, score: any) => {
+            const category = score.participant.category?.toLowerCase() || "";
+
             if (!acc[score.participant_id]) {
               acc[score.participant_id] = {
                 participant: score.participant,
+                category,
                 innovation: 0,
                 impact: 0,
                 feasibility: 0,
+                market: 0,
+                publication: 0,
+                others: 0,
               };
             }
-            acc[score.participant_id].innovation += score.innovation_score;
-            acc[score.participant_id].impact += score.impact_score;
-            acc[score.participant_id].feasibility += score.feasibility_score;
+
+            acc[score.participant_id].innovation += score.innovation_score || 0;
+            acc[score.participant_id].impact += score.impact_score || 0;
+            acc[score.participant_id].feasibility += score.feasibility_score || 0;
+            acc[score.participant_id].market += score.market_score || 0;
+
+            if (category === "pg") {
+              acc[score.participant_id].publication += score.publication_score || 0;
+              acc[score.participant_id].others += score.others_score || 0;
+            }
+
             return acc;
           }, {})
-        ).map((entry: any) => ({
-          participant: entry.participant,
-          totalInnovation: entry.innovation,
-          totalImpact: entry.impact,
-          totalFeasibility: entry.feasibility,
-          totalScore: entry.innovation + entry.impact + entry.feasibility,
-        }));
+        ).map((entry: any) => {
+          const category = entry.category;
+
+          // Conditional total based on category
+          const total =
+            category === "pg"
+              ? entry.innovation +
+                entry.impact +
+                entry.feasibility +
+                entry.market +
+                entry.publication +
+                entry.others
+              : entry.innovation +
+                entry.impact +
+                entry.feasibility +
+                entry.market;
+
+          return {
+            participant: entry.participant,
+            totalInnovation: entry.innovation,
+            totalImpact: entry.impact,
+            totalFeasibility: entry.feasibility,
+            totalMarket: entry.market,
+            totalPublication: entry.publication,
+            totalOthers: entry.others,
+            totalScore: total,
+          };
+        });
 
         const byCategory: Record<string, LeaderboardEntry[]> = grouped.reduce(
           (acc, entry) => {
@@ -97,9 +141,6 @@ export default function ScoreboardPage() {
 
     fetchScores();
   }, []);
-
-  const catKey = selectedCategory.toLowerCase();
-  const catScores = scores[catKey] || [];
 
   return (
     <div className="min-h-screen bg-gray-950 text-white px-4 md:px-6 py-10 font-sans">
@@ -142,99 +183,121 @@ export default function ScoreboardPage() {
               {selectedCategory} Leaderboard
             </h2>
 
-            {/* Podium layout for top 3 */}
-            {catScores.length >= 3 && (
-              <div className="flex items-end justify-center gap-6 mb-10">
-                {/* 2nd */}
-                <div className="flex-1 max-w-[200px] text-center">
-                  <div className="p-4 rounded-xl bg-gradient-to-r from-gray-400/20 to-gray-300/10 border border-gray-400 shadow-lg">
-                    <p className="text-3xl">🥈</p>
-                    <h3 className="text-lg font-bold text-gray-200">
-                      {catScores[1].participant.name}
-                    </h3>
-                    <p className="text-sm text-amber-400">
-                      {catScores[1].participant.project_title}
-                    </p>
-                    <p className="text-xl font-extrabold text-gray-300 mt-2">
-                      {catScores[1].totalScore.toFixed(1)}
-                    </p>
+            {/* Split scores into tiers */}
+            {["gold", "silver", "bronze"].map((tier, tIndex) => {
+              const start = tIndex * 3;
+              const end = start + 3;
+              const tierScores = catScores.slice(start, end);
+
+              if (tierScores.length === 0) return null;
+
+              const colors =
+                tier === "gold"
+                  ? "from-yellow-500/30 to-yellow-400/20 border-yellow-500 text-yellow-400"
+                  : tier === "silver"
+                  ? "from-gray-400/20 to-gray-300/10 border-gray-400 text-gray-200"
+                  : "from-amber-700/20 to-amber-600/10 border-amber-600 text-amber-500";
+
+              const medalEmoji = tier === "gold" ? "🥇" : tier === "silver" ? "🥈" : "🥉";
+              const tierTitle =
+                tier === "gold" ? "Gold Podium" : tier === "silver" ? "Silver Podium" : "Bronze Podium";
+
+              return (
+                <div key={tier} className="mb-16">
+                  <h3
+                    className={`text-2xl font-bold mb-8 text-center ${
+                      tier === "gold"
+                        ? "text-yellow-400"
+                        : tier === "silver"
+                        ? "text-gray-300"
+                        : "text-amber-500"
+                    }`}
+                  >
+                    {tierTitle}
+                  </h3>
+
+                  <div className="flex flex-wrap justify-center gap-6">
+                    {tierScores.map((item, index) => (
+                      <motion.div
+                        key={item.participant.id}
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: index * 0.1 }}
+                        className={`flex-1 max-w-[220px] min-w-[180px] text-center rounded-xl p-5 bg-gradient-to-r ${colors} shadow-lg border`}
+                      >
+                        <p className="text-3xl mb-1">{medalEmoji}</p>
+                        <div
+                          className="overflow-y-auto max-h-[120px]"
+                          style={{
+                            scrollbarWidth: "none",
+                            msOverflowStyle: "none",
+                          }}
+                        >
+                          <style>
+                            {`
+                              div::-webkit-scrollbar {
+                                display: none;
+                              }
+                            `}
+                          </style>
+                          <h3 className="text-lg font-bold break-words">{item.participant.name}</h3>
+                          <p className="text-sm text-amber-400 break-words">
+                            {item.participant.project_title}
+                          </p>
+                        </div>
+                        <p className="text-xl font-extrabold mt-3">
+                          {item.totalScore.toFixed(1)} / {getMaxScore(item.participant.category)}
+                        </p>
+                      </motion.div>
+                    ))}
                   </div>
                 </div>
+              );
+            })}
 
-                {/* 1st */}
-                <div className="flex-1 max-w-[220px] text-center -mt-10">
-                  <div className="p-6 rounded-xl bg-gradient-to-r from-yellow-500/30 to-yellow-400/20 border border-yellow-500 shadow-2xl">
-                    <p className="text-4xl">👑</p>
-                    <h3 className="text-xl font-bold text-yellow-400">
-                      {catScores[0].participant.name}
-                    </h3>
-                    <p className="text-sm text-amber-400">
-                      {catScores[0].participant.project_title}
-                    </p>
-                    <p className="text-2xl font-extrabold text-yellow-300 mt-2">
-                      {catScores[0].totalScore.toFixed(1)}
-                    </p>
-                  </div>
-                </div>
+            {/* Remaining participants */}
+            {catScores.length > 9 && (
+              <div>
+                <h3 className="text-2xl font-bold text-gray-400 mb-6 text-center">Other Participants</h3>
+                <div className="space-y-4">
+                  {catScores.slice(9).map((item, index) => (
+                    <motion.div
+                      key={item.participant.id}
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: index * 0.05 }}
+                      className="p-5 rounded-xl bg-gray-900 border border-gray-700 shadow-lg flex items-center justify-between"
+                    >
+                      <div className="flex items-start gap-3">
+                        <span className="text-2xl font-bold text-gray-400 w-6">
+                          {index + 10}.
+                        </span>
+                        <div>
+                          <h3 className="text-lg font-bold text-white leading-tight">
+                            {item.participant.name}
+                          </h3>
+                          <p className="text-sm text-amber-400 leading-tight">
+                            {item.participant.project_title}
+                          </p>
+                          <p className="text-xs text-gray-500 mt-1">
+                            {item.participant.institution}
+                          </p>
+                        </div>
+                      </div>
 
-                {/* 3rd */}
-                <div className="flex-1 max-w-[200px] text-center">
-                  <div className="p-4 rounded-xl bg-gradient-to-r from-amber-700/20 to-amber-600/10 border border-amber-600 shadow-lg">
-                    <p className="text-3xl">🥉</p>
-                    <h3 className="text-lg font-bold text-amber-600">
-                      {catScores[2].participant.name}
-                    </h3>
-                    <p className="text-sm text-amber-400">
-                      {catScores[2].participant.project_title}
-                    </p>
-                    <p className="text-xl font-extrabold text-amber-500 mt-2">
-                      {catScores[2].totalScore.toFixed(1)}
-                    </p>
-                  </div>
+                      <div className="text-right">
+                        <p className="text-2xl font-extrabold text-amber-400">
+                          {item.totalScore.toFixed(1)} / {getMaxScore(item.participant.category)}
+                        </p>
+                        <p className="text-xs text-gray-500">
+                          ({((item.totalScore / getMaxScore(item.participant.category)) * 100).toFixed(1)}%)
+                        </p>
+                      </div>
+                    </motion.div>
+                  ))}
                 </div>
               </div>
             )}
-
-            {/* Rest of the leaderboard */}
-            <div className="space-y-4">
-              {catScores.slice(3).map((item, index) => (
-                <motion.div
-                  key={item.participant.id}
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: index * 0.05 }}
-                  className="p-5 rounded-xl bg-gray-900 border border-gray-700 shadow-lg flex items-center justify-between"
-                >
-                  <div className="flex items-start gap-3">
-                    <span className="text-2xl font-bold text-gray-400 w-6">
-                      {index + 4}.
-                    </span>
-                    <div>
-                      <h3 className="text-lg font-bold text-white leading-tight">
-                        {item.participant.name}
-                      </h3>
-                      <p className="text-sm text-amber-400 leading-tight">
-                        {item.participant.project_title}
-                      </p>
-                      <p className="text-xs text-gray-500 mt-1">
-                        {item.participant.institution}
-                      </p>
-                    </div>
-                  </div>
-
-                  <div className="text-right">
-                    <p className="text-2xl font-extrabold text-amber-400">
-                      {item.totalScore.toFixed(1)}
-                    </p>
-                    <p className="text-xs text-gray-500">
-                      Innovation: {item.totalInnovation.toFixed(1)} | Impact:{" "}
-                      {item.totalImpact.toFixed(1)} | Feasibility:{" "}
-                      {item.totalFeasibility.toFixed(1)}
-                    </p>
-                  </div>
-                </motion.div>
-              ))}
-            </div>
           </div>
         )}
       </div>
