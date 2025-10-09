@@ -145,48 +145,93 @@ export default function ScoreboardPage() {
             {/* Podium layout for top 3 */}
             {catScores.length >= 3 && (
               <div className="flex items-end justify-center gap-6 mb-10">
-                {/* 2nd */}
+                {/* 🥈 2nd Place */}
                 <div className="flex-1 max-w-[200px] text-center">
-                  <div className="p-4 rounded-xl bg-gradient-to-r from-gray-400/20 to-gray-300/10 border border-gray-400 shadow-lg">
-                    <p className="text-3xl">🥈</p>
-                    <h3 className="text-lg font-bold text-gray-200">
-                      {catScores[1].participant.name}
-                    </h3>
-                    <p className="text-sm text-amber-400">
-                      {catScores[1].participant.project_title}
-                    </p>
+                  <div className="h-[260px] flex flex-col justify-end p-4 rounded-xl bg-gradient-to-r from-gray-400/20 to-gray-300/10 border border-gray-400 shadow-lg overflow-hidden">
+                    <p className="text-3xl mb-1">🥈</p>
+                    <div
+                      className="overflow-y-auto max-h-[140px]"
+                      style={{
+                        scrollbarWidth: "none", // Firefox
+                        msOverflowStyle: "none", // IE/Edge
+                      }}
+                    >
+                      <style>
+                        {`
+                          div::-webkit-scrollbar {
+                            display: none;
+                          }
+                        `}
+                      </style>
+                      <h3 className="text-lg font-bold text-gray-200 break-words">
+                        {catScores[1].participant.name}
+                      </h3>
+                      <p className="text-sm text-amber-400 break-words">
+                        {catScores[1].participant.project_title}
+                      </p>
+                    </div>
                     <p className="text-xl font-extrabold text-gray-300 mt-2">
                       {catScores[1].totalScore.toFixed(1)}
                     </p>
                   </div>
                 </div>
 
-                {/* 1st */}
-                <div className="flex-1 max-w-[220px] text-center -mt-10">
-                  <div className="p-6 rounded-xl bg-gradient-to-r from-yellow-500/30 to-yellow-400/20 border border-yellow-500 shadow-2xl">
-                    <p className="text-4xl">👑</p>
-                    <h3 className="text-xl font-bold text-yellow-400">
-                      {catScores[0].participant.name}
-                    </h3>
-                    <p className="text-sm text-amber-400">
-                      {catScores[0].participant.project_title}
-                    </p>
+                {/* 👑 1st Place */}
+                <div className="flex-1 max-w-[220px] text-center">
+                  <div className="h-[300px] flex flex-col justify-end p-6 rounded-xl bg-gradient-to-r from-yellow-500/30 to-yellow-400/20 border border-yellow-500 shadow-2xl overflow-hidden">
+                    <p className="text-4xl mb-1">👑</p>
+                    <div
+                      className="overflow-y-auto max-h-[160px]"
+                      style={{
+                        scrollbarWidth: "none",
+                        msOverflowStyle: "none",
+                      }}
+                    >
+                      <style>
+                        {`
+                          div::-webkit-scrollbar {
+                            display: none;
+                          }
+                        `}
+                      </style>
+                      <h3 className="text-xl font-bold text-yellow-400 break-words">
+                        {catScores[0].participant.name}
+                      </h3>
+                      <p className="text-sm text-amber-400 break-words">
+                        {catScores[0].participant.project_title}
+                      </p>
+                    </div>
                     <p className="text-2xl font-extrabold text-yellow-300 mt-2">
                       {catScores[0].totalScore.toFixed(1)}
                     </p>
                   </div>
                 </div>
 
-                {/* 3rd */}
+                {/* 🥉 3rd Place */}
                 <div className="flex-1 max-w-[200px] text-center">
-                  <div className="p-4 rounded-xl bg-gradient-to-r from-amber-700/20 to-amber-600/10 border border-amber-600 shadow-lg">
-                    <p className="text-3xl">🥉</p>
-                    <h3 className="text-lg font-bold text-amber-600">
-                      {catScores[2].participant.name}
-                    </h3>
-                    <p className="text-sm text-amber-400">
-                      {catScores[2].participant.project_title}
-                    </p>
+                  <div className="h-[220px] flex flex-col justify-end p-4 rounded-xl bg-gradient-to-r from-amber-700/20 to-amber-600/10 border border-amber-600 shadow-lg overflow-hidden">
+                    <p className="text-3xl mb-1">🥉</p>
+                    <div
+                      className="overflow-y-auto max-h-[120px]"
+                      style={{
+                        scrollbarWidth: "none",
+                        msOverflowStyle: "none",
+                      }}
+                    >
+                      <style>
+                        {`
+                          div::-webkit-scrollbar {
+                            display: none;
+                          }
+                        `}
+                      </style>
+                      <h3 className="text-lg font-bold text-amber-600 break-words">
+                        {catScores[2].participant.name}
+                      </h3>
+                      <p className="text-sm text-amber-400 break-words">
+                        {catScores[2].participant.project_title}
+                      </p>
+                    </div>
                     <p className="text-xl font-extrabold text-amber-500 mt-2">
                       {catScores[2].totalScore.toFixed(1)}
                     </p>
@@ -241,3 +286,4 @@ export default function ScoreboardPage() {
     </div>
   );
 }
+
