@@ -294,6 +294,7 @@ export default function QRScannerPage() {
       const payload = {
         participant_id: participant.id,
         judge_id: judgeId,
+        category: participant.category,
         innovation_score: Number(innovation),
         impact_score: Number(impact),
         feasibility_score: Number(feasibility),
