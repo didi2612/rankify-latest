@@ -162,7 +162,7 @@ export default function QRScannerPage() {
 
       try {
         const res = await fetch(
-          `${SUPABASE_URL}/rest/v1/participants?name=eq.${encodeURIComponent(scannedData)}&select=id,name,project_title,institution,category`,
+          `${SUPABASE_URL}/rest/v1/participants?id=eq.${encodeURIComponent(scannedData)}&select=id,name,project_title,institution,category`,
           {
             headers: {
               apikey: SUPABASE_API_KEY,
