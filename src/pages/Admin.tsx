@@ -125,6 +125,12 @@ const handleSaveScore = async (rowId: string, col: string, newValue: string) => 
     judges: "Judges",
     scores: "Scores",
   };
+  const scoreDisplayNames: Record<string, string> = {
+    innovation_score: "Novelty And Inventiveness",
+    impact_score: "Usefulness And Application",
+    feasibility_score: "Presentation And Demonstration",
+    market_score: "Market And Commercial Potential",
+  };
 useEffect(() => {
   if (accountType === "SuperAdmin") {
     fetchTableData(selectedTable);
@@ -545,7 +551,7 @@ const getJudgeName = (id: string) => {
             className="flex justify-between border-b border-gray-700/50 py-2 last:border-b-0"
           >
             <span className="text-gray-400 text-xs uppercase tracking-wider">
-              {col.replace(/_/g, " ")}
+              {scoreDisplayNames[col] || col.replace(/_/g, " ")}
             </span>
 
             <div className="flex items-center gap-2">
