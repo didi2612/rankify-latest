@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Trophy, Loader2 } from "lucide-react";
+import { Trophy, Loader2, ChevronLeft, ChevronRight } from "lucide-react";
 import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import Cookies from "js-cookie";
@@ -58,9 +58,12 @@ export default function ScoreboardPage() {
   const [loading, setLoading] = useState(true);
   const [scores, setScores] = useState<Record<string, LeaderboardEntry[]>>({});
   const [selectedCategory, setSelectedCategory] = useState("FYP");
+  const [currentPage, setCurrentPage] = useState(1);
 
   const navigate = useNavigate();
   const categories = ["FYP", "IDP", "Community Services", "PG"];
+
+  const itemsPerPage = 10;
 
   const getMaxScore = (category: string) =>
     category.toLowerCase() === "pg" ? 45 : 40;
@@ -231,6 +234,11 @@ export default function ScoreboardPage() {
   const catKey = selectedCategory.toLowerCase();
   const catScores = scores[catKey] || [];
 
+  // Pagination
+  const totalPages = Math.ceil(catScores.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const currentScores = catScores.slice(startIndex, startIndex + itemsPerPage);
+
   return (
     <div className="min-h-screen bg-gray-950 text-white px-4 md:px-6 py-10 font-sans">
       <div className="max-w-4xl mx-auto">
@@ -246,7 +254,10 @@ export default function ScoreboardPage() {
           </label>
           <select
             value={selectedCategory}
-            onChange={(e) => setSelectedCategory(e.target.value)}
+            onChange={(e) => {
+              setSelectedCategory(e.target.value);
+              setCurrentPage(1);
+            }}
             className="bg-gray-900 border border-gray-700 text-gray-200 px-4 py-2 rounded-lg w-full max-w-xs focus:outline-none focus:ring-2 focus:ring-amber-400"
           >
             {categories.map((cat) => (
@@ -262,134 +273,88 @@ export default function ScoreboardPage() {
             No scores available for {selectedCategory}.
           </p>
         ) : (
-          <div>
-            <h2 className="text-2xl font-bold text-blue-400 mb-20">
+          <>
+            <h2 className="text-2xl font-bold text-blue-400 mb-6 text-center">
               {selectedCategory} Leaderboard
             </h2>
 
-            {/* 🥇🥈🥉 Podium Tiers */}
-            {["gold", "silver", "bronze"].map((tier, tIndex) => {
-              const start = tIndex * 3;
-              const end = start + 3;
-              const tierScores = catScores.slice(start, end);
-              if (tierScores.length === 0) return null;
-
-              const colors =
-                tier === "gold"
-                  ? "from-yellow-500/30 to-yellow-400/20 border-yellow-500 text-yellow-400"
-                  : tier === "silver"
-                  ? "from-gray-400/20 to-gray-300/10 border-gray-400 text-gray-200"
-                  : "from-amber-700/20 to-amber-600/10 border-amber-600 text-amber-500";
-
-              const medalEmoji =
-                tier === "gold" ? "🥇" : tier === "silver" ? "🥈" : "🥉";
-              const tierTitle =
-                tier === "gold"
-                  ? "Gold Podium"
-                  : tier === "silver"
-                  ? "Silver Podium"
-                  : "Bronze Podium";
-
-              return (
-                <div key={tier} className="mb-16">
-                  <h3
-                    className={`text-2xl font-bold mb-8 text-center ${
-                      tier === "gold"
-                        ? "text-yellow-400"
-                        : tier === "silver"
-                        ? "text-gray-300"
-                        : "text-amber-500"
-                    }`}
-                  >
-                    {tierTitle}
-                  </h3>
-
-                  <div className="flex flex-wrap justify-center gap-6">
-                    {tierScores.map((item, index) => (
-                      <motion.div
-                        key={item.participant.id}
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: index * 0.1 }}
-                        className={`flex-1 max-w-[220px] min-w-[180px] text-center rounded-xl p-5 bg-gradient-to-r ${colors} shadow-lg border`}
-                      >
-                        <p className="text-3xl mb-1">{medalEmoji}</p>
-                        <div
-                          className="overflow-y-auto max-h-[120px]"
-                          style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
-                        >
-                          <style>{`div::-webkit-scrollbar { display: none; }`}</style>
-                          <h3 className="text-lg font-bold break-words">
-                            {item.participant.name}
-                          </h3>
-                          <p className="text-sm text-amber-400 break-words">
-                            {item.participant.project_title}
-                          </p>
-                        </div>
-                        <p className="text-xl font-extrabold mt-3">
-                          {item.totalScore.toFixed(1)} /{" "}
-                          {getMaxScore(item.participant.category)}
-                        </p>
-                      </motion.div>
-                    ))}
+            {/* 🧾 Paginated List */}
+            <div className="space-y-4">
+              {currentScores.map((item, index) => (
+                <motion.div
+                  key={item.participant.id}
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: index * 0.05 }}
+                  className="p-5 rounded-xl bg-gray-900 border border-gray-700 shadow-lg flex items-center justify-between"
+                >
+                  <div className="flex items-start gap-3">
+                    <span className="text-2xl font-bold text-gray-400 w-6">
+                      {startIndex + index + 1}.
+                    </span>
+                    <div>
+                      <h3 className="text-lg font-bold text-white leading-tight">
+                        {item.participant.name}
+                      </h3>
+                      <p className="text-sm text-amber-400 leading-tight">
+                        {item.participant.project_title}
+                      </p>
+                      <p className="text-xs text-gray-500 mt-1">
+                        {item.participant.institution}
+                      </p>
+                    </div>
                   </div>
-                </div>
-              );
-            })}
 
-            {/* 🧾 Other Participants */}
-            {catScores.length > 9 && (
-              <div>
-                <h3 className="text-2xl font-bold text-gray-400 mb-6 text-center">
-                  Other Participants
-                </h3>
-                <div className="space-y-4">
-                  {catScores.slice(9).map((item, index) => (
-                    <motion.div
-                      key={item.participant.id}
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: index * 0.05 }}
-                      className="p-5 rounded-xl bg-gray-900 border border-gray-700 shadow-lg flex items-center justify-between"
-                    >
-                      <div className="flex items-start gap-3">
-                        <span className="text-2xl font-bold text-gray-400 w-6">
-                          {index + 10}.
-                        </span>
-                        <div>
-                          <h3 className="text-lg font-bold text-white leading-tight">
-                            {item.participant.name}
-                          </h3>
-                          <p className="text-sm text-amber-400 leading-tight">
-                            {item.participant.project_title}
-                          </p>
-                          <p className="text-xs text-gray-500 mt-1">
-                            {item.participant.institution}
-                          </p>
-                        </div>
-                      </div>
+                  <div className="text-right">
+                    <p className="text-2xl font-extrabold text-amber-400">
+                      {item.totalScore.toFixed(1)} /{" "}
+                      {getMaxScore(item.participant.category)}
+                    </p>
+                    <p className="text-xs text-gray-500">
+                      (
+                      {(
+                        (item.totalScore /
+                          getMaxScore(item.participant.category)) *
+                        100
+                      ).toFixed(1)}
+                      %)
+                    </p>
+                  </div>
+                </motion.div>
+              ))}
+            </div>
 
-                      <div className="text-right">
-                        <p className="text-2xl font-extrabold text-amber-400">
-                          {item.totalScore.toFixed(1)} /{" "}
-                          {getMaxScore(item.participant.category)}
-                        </p>
-                        <p className="text-xs text-gray-500">
-                          (
-                          {(
-                            (item.totalScore /
-                              getMaxScore(item.participant.category)) *
-                            100
-                          ).toFixed(1)}
-                          %)
-                        </p>
-                      </div>
-                    </motion.div>
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
+            {/* Pagination Controls */}
+            <div className="flex justify-center items-center gap-4 mt-10">
+              <button
+                disabled={currentPage === 1}
+                onClick={() => setCurrentPage((p) => p - 1)}
+                className={`flex items-center gap-1 px-4 py-2 rounded-lg border ${
+                  currentPage === 1
+                    ? "border-gray-700 text-gray-500 cursor-not-allowed"
+                    : "border-amber-500 text-amber-400 hover:bg-amber-500/10"
+                }`}
+              >
+                <ChevronLeft className="w-4 h-4" /> Prev
+              </button>
+
+              <span className="text-sm text-gray-400">
+                Page {currentPage} of {totalPages}
+              </span>
+
+              <button
+                disabled={currentPage === totalPages}
+                onClick={() => setCurrentPage((p) => p + 1)}
+                className={`flex items-center gap-1 px-4 py-2 rounded-lg border ${
+                  currentPage === totalPages
+                    ? "border-gray-700 text-gray-500 cursor-not-allowed"
+                    : "border-amber-500 text-amber-400 hover:bg-amber-500/10"
+                }`}
+              >
+                Next <ChevronRight className="w-4 h-4" />
+              </button>
+            </div>
+          </>
         )}
       </div>
     </div>
