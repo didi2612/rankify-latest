@@ -39,7 +39,7 @@ export default function ScoreboardPage() {
     const fetchScores = async () => {
       try {
         const res = await fetch(
-          `${SUPABASE_URL}/rest/v1/scores?select=participant_id,innovation_score,impact_score,feasibility_score,participant:participant_id(id,name,project_title,institution,category)`,
+          `${SUPABASE_URL}/rest/v1/scores?select=participant_id,innovation_score,impact_score,feasibility_score,market_score,publication_score,others_score,participant:participant_id(id,name,project_title,institution,category)`,
           {
             headers: {
               apikey: SUPABASE_API_KEY,
@@ -51,27 +51,62 @@ export default function ScoreboardPage() {
         const data: Score[] = await res.json();
 
         const grouped = Object.values(
-          data.reduce((acc: any, score: Score) => {
+          data.reduce((acc: any, score: any) => {
+            const category = score.participant.category?.toLowerCase() || "";
+
             if (!acc[score.participant_id]) {
               acc[score.participant_id] = {
                 participant: score.participant,
+                category,
                 innovation: 0,
                 impact: 0,
                 feasibility: 0,
+                market: 0,
+                publication: 0,
+                others: 0,
               };
             }
-            acc[score.participant_id].innovation += score.innovation_score;
-            acc[score.participant_id].impact += score.impact_score;
-            acc[score.participant_id].feasibility += score.feasibility_score;
+
+            acc[score.participant_id].innovation += score.innovation_score || 0;
+            acc[score.participant_id].impact += score.impact_score || 0;
+            acc[score.participant_id].feasibility += score.feasibility_score || 0;
+            acc[score.participant_id].market += score.market_score || 0;
+
+            if (category === "pg") {
+              acc[score.participant_id].publication += score.publication_score || 0;
+              acc[score.participant_id].others += score.others_score || 0;
+            }
+
             return acc;
           }, {})
-        ).map((entry: any) => ({
-          participant: entry.participant,
-          totalInnovation: entry.innovation,
-          totalImpact: entry.impact,
-          totalFeasibility: entry.feasibility,
-          totalScore: entry.innovation + entry.impact + entry.feasibility,
-        }));
+        ).map((entry: any) => {
+          const category = entry.category;
+
+          // Conditional total based on category
+          const total =
+            category === "pg"
+              ? entry.innovation +
+                entry.impact +
+                entry.feasibility +
+                entry.market +
+                entry.publication +
+                entry.others
+              : entry.innovation +
+                entry.impact +
+                entry.feasibility +
+                entry.market;
+
+          return {
+            participant: entry.participant,
+            totalInnovation: entry.innovation,
+            totalImpact: entry.impact,
+            totalFeasibility: entry.feasibility,
+            totalMarket: entry.market,
+            totalPublication: entry.publication,
+            totalOthers: entry.others,
+            totalScore: total,
+          };
+        });
 
         const byCategory: Record<string, LeaderboardEntry[]> = grouped.reduce(
           (acc, entry) => {
@@ -286,4 +321,5 @@ export default function ScoreboardPage() {
     </div>
   );
 }
+
 
