@@ -532,30 +532,16 @@ export default function QRScannerPage() {
           <div className="bg-gray-800 rounded-xl shadow-2xl p-8 text-center max-w-sm mx-auto border border-gray-700">
             <h3 className="text-lg font-bold text-white mb-3">Confirm Submission</h3>
 
-            <div className="bg-gray-900 rounded-lg p-4 mb-4 border border-gray-700 text-left text-gray-300">
-              <p className="font-semibold text-blue-400 mb-2">Score Summary:</p>
-              <ul className="space-y-1 text-sm">
-                <li>🧠 Innovation: <span className="font-bold text-white">{scores.innovation || 0}</span></li>
-                <li>💡 Impact: <span className="font-bold text-white">{scores.impact || 0}</span></li>
-                <li>🎤 Feasibility: <span className="font-bold text-white">{scores.feasibility || 0}</span></li>
-                <li>💰 Market: <span className="font-bold text-white">{scores.market || 0}</span></li>
-                {participant?.category?.toLowerCase() === "pg" && (
-                  <>
-                    <li>📄 Publication: <span className="font-bold text-white">{scores.publication ?? 0}</span></li>
-                    <li>🤝 LOI/NDA/MoU/MoA: <span className="font-bold text-white">{scores.others ?? 0}</span></li>
-                  </>
-                )}
-              </ul>
-
-              <div className="mt-3 pt-2 border-t border-gray-700 flex justify-between items-center">
-                <span className="text-gray-400 text-sm">Total Score</span>
-                <span className="text-2xl font-extrabold text-amber-400">
-                  {calculateTotalScore().toFixed(2)}
-                </span>
-              </div>
+            <div className="bg-gray-900 rounded-lg p-6 mb-5 border border-gray-700">
+              <p className="text-gray-400 text-sm mb-2">Total Score</p>
+              <span className="text-4xl font-extrabold text-amber-400">
+                {calculateTotalScore().toFixed(2)}
+              </span>
             </div>
 
-            <p className="text-gray-400 mb-6">Are you sure you want to submit these scores? You won’t be able to edit them later.</p>
+            <p className="text-gray-400 mb-6">
+              Are you sure you want to submit this total score? You won’t be able to edit it later.
+            </p>
 
             <div className="flex justify-center gap-4">
               <button
