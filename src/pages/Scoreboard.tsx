@@ -66,7 +66,7 @@ export default function ScoreboardPage() {
   const itemsPerPage = 10;
 
   const getMaxScore = (category: string) =>
-    category.toLowerCase() === "pg" ? 45 : 40;
+    category.toLowerCase() === "pg" ? 90 : 80;
 
   // 🔹 Step 1: Check if logged-in user is SuperAdmin
   useEffect(() => {
@@ -360,3 +360,4 @@ export default function ScoreboardPage() {
     </div>
   );
 }
+
