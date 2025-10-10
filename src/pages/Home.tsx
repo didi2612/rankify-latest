@@ -113,12 +113,7 @@ export default function Home() {
                         </Link>
 
                         {/* Secondary CTA: View Scoreboard */}
-                        <Link
-                            to="/explore"
-                            className="inline-flex items-center gap-2 border-2 border-blue-600 text-blue-400 font-semibold px-8 py-3 rounded-xl transition hover:bg-blue-600 hover:text-white"
-                        >
-                            View Scoreboard
-                        </Link>
+                        
                     </div>
                 </motion.div>
 

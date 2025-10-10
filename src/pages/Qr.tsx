@@ -139,6 +139,7 @@ export default function QRScannerPage() {
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [showAlreadySubmittedModal, setShowAlreadySubmittedModal] = useState(false);
+  const [showCamera, setShowCamera] = useState(true);
 
     useEffect(() => {
     const loadJudgeId = async () => {
@@ -411,16 +412,35 @@ export default function QRScannerPage() {
           className="bg-gray-800 p-6 rounded-2xl shadow-2xl border border-gray-700"
         >
           <h2 className="text-xl font-bold text-white mb-4 border-b border-gray-700/50 pb-3">QR Scanner</h2>
-          <div className="w-full max-w-xs mx-auto aspect-square rounded-xl overflow-hidden border-4 border-amber-500 shadow-inner shadow-amber-500/30">
-            <BarcodeScannerComponent
-              width="100%"
-              height="100%"
-              onUpdate={(_err, result) => {
-                if (result) setScannedData(result.getText());
-              }}
-             
-            />
-          </div>
+
+          {showCamera ? (
+            <div className="w-full max-w-xs mx-auto aspect-square rounded-xl overflow-hidden border-4 border-amber-500 shadow-inner shadow-amber-500/30">
+              <BarcodeScannerComponent
+                width="100%"
+                height="100%"
+                onUpdate={(_err, result) => {
+                  if (result) {
+                    setScannedData(result.getText());
+                    setShowCamera(false); // 👈 Hide entire camera box
+                  }
+                }}
+              />
+            </div>
+          ) : (
+            scannedData && (
+              <div className="text-center mt-4">
+                <button
+                  onClick={() => {
+                    setScannedData(null);
+                    setShowCamera(true);
+                  }}
+                  className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 rounded-lg text-white font-semibold shadow-lg transition-all"
+                >
+                  Scan QR Again
+                </button>
+              </div>
+            )
+          )}
 
           {/* Result Area */}
           <div className="mt-6 text-center w-full">

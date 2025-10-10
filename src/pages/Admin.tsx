@@ -13,7 +13,7 @@ type TableType = "participants" | "judges" | "scores";
 
 const tableColumns: Record<TableType, string[]> = {
   participants: ["name", "project_title", "institution", "email", "phone", "category"],
-  judges: ["name", "email", "username", "password", "avatar_url"],
+  judges: ["name", "email", "username", "password", "avatar_url","account_type"],
   scores: [
     "participant_id",
     "judge_id",
@@ -526,7 +526,9 @@ useEffect(() => {
           className="w-20 h-20 rounded-full border-4 border-amber-500 mb-4 object-cover shadow-lg"
         />
         <h3 className="text-white font-bold text-lg">{judge.name}</h3>
+        <p className="text-white bg-black p-2 rounded-lg m-2 text-lg">{judge.account_type}</p>
         <p className="text-gray-300 text-sm">@{judge.username || "no_username"}</p>
+        
         <p className="text-gray-400 text-sm mb-4">{judge.email}</p>
         <button
           onClick={() => handleDelete(judge.id)}

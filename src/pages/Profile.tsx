@@ -1,10 +1,26 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { toast } from "react-toastify";
-import { Edit, Save, X, LogOut, User, Zap, Shield, Image, TrendingUp, QrCode } from "lucide-react"; // Import professional icons
+import { Edit, Save, X, LogOut, User, Zap, Shield, Image, TrendingUp, QrCode, FileText } from "lucide-react"; // Import professional icons
 
 const SUPABASE_URL = "https://pftyzswxwkheomnqzytu.supabase.co";
 const SUPABASE_API_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBmdHl6c3d4d2toZW9tbnF6eXR1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTM3NjczNzksImV4cCI6MjA2OTM0MzM3OX0.TI9DGipYP9X8dSZSUh5CVQIbeYnf9vhNXAqw5e5ZVkk"; // Secure this key in production
+
+const handleOpenFileForPG = () => {
+  const fileUrl = "https://azmiproductions.com/kerice/rubricPG.pdf";
+  const newTab = window.open(fileUrl, "_blank");
+  if (!newTab) {
+    alert("Please allow popups for this site.");
+  }
+};
+
+const handleOpenFile = () => {
+  const fileUrl = "https://azmiproductions.com/kerice/fypidp.pdf";
+  const newTab = window.open(fileUrl, "_blank");
+  if (!newTab) {
+    alert("Please allow popups for this site.");
+  }
+};
 
 const getCookie = (name: string): string | null => {
   const match = document.cookie.match(new RegExp(`(^| )${name}=([^;]+)`));
@@ -345,7 +361,25 @@ export default function Profile() {
                     <span className="text-sm text-center">Evaluation</span>
                 </Link>
 
-                {/* Scoreboard Link (All Users) */}
+                {/* button to open file */}
+                <button
+                  onClick={handleOpenFileForPG}
+                  className="group flex flex-col items-center justify-center gap-2 p-5 rounded-2xl bg-gradient-to-br from-blue-600 to-blue-500 hover:from-blue-700 hover:to-blue-600 shadow-blue-500/40 hover:shadow-blue-500/60"
+                >
+                  <FileText className="w-7 h-7 mb-1 transition-transform duration-300 group-hover:scale-110 group-hover:rotate-3" />
+                  <span className="text-sm text-center">Judging Rubric (PG)</span>
+                  <span className="text-[10px] text-white/70 group-hover:text-white/90">Open PDF</span>
+                </button>
+
+                {/* Other Category Rubric */}
+                <button
+                  onClick={handleOpenFile}
+                  className="group flex flex-col items-center justify-center gap-2 p-5 rounded-2xl bg-gradient-to-br from-amber-500 to-yellow-500 hover:from-amber-600 hover:to-yellow-600 shadow-amber-400/40 hover:shadow-amber-400/60"
+                >
+                  <FileText className="w-7 h-7 mb-1 transition-transform duration-300 group-hover:scale-110 group-hover:rotate-3" />
+                  <span className="text-sm text-center">Judging Rubric (FYP, IDP, & Community Services)</span>
+                  <span className="text-[10px] text-white/70 group-hover:text-white/90">Open PDF</span>
+                </button>
                 
                 
                 {/* Log Out Button */}
