@@ -161,7 +161,7 @@ export default function AuthHandler() {
   const renderUsernameInput = () => (
     <>
       <h1 className="text-3xl font-bold text-center text-transparent bg-clip-text bg-gradient-to-r from-yellow-400 via-pink-400 to-purple-400 animate-text">
-        FIRST TIME LOGIN
+        First Time Login
       </h1>
       <p className="text-gray-400 text-center mb-4">
         Enter your username to proceed

@@ -13,7 +13,7 @@ import Scoreboard from './pages/Scoreboard';
 
 function AppWrapper() {
   const location = useLocation();
-  const hideSidebarPaths = ['/profile', '/azp',  '/myupload','/firsttimelogin', '/register', '/qr','/admin'];
+  const hideSidebarPaths = ['/profile', '/azp',  '/myupload','/firsttimelogin', '/register', '/qr','/admin','/explore'];
   const shouldShowSidebar = !hideSidebarPaths.includes(location.pathname);
 
   return (
