@@ -1,16 +1,38 @@
 import { useEffect, useState } from "react";
-import { Trophy, Loader2 } from "lucide-react";
+import { Trophy, Loader2, ChevronLeft, ChevronRight } from "lucide-react";
 import { motion } from "framer-motion";
+import { useNavigate } from "react-router-dom";
+import Cookies from "js-cookie";
 
 const SUPABASE_URL = "https://pftyzswxwkheomnqzytu.supabase.co";
 const SUPABASE_API_KEY =
-  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBmdHl6c3d4d2toZW9tbnF6eXR1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTM3NjczNzksImV4cCI6MjA2OTM0MzM3OX0.TI9DGipYP9X8dSZSUh5CVQIbeYnf9vhNXAqw5e5ZVkk"; // ⚠️ Use env var in production
+  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBmdHl6c3d4d2toZW9tbnF6eXR1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTM3NjczNzksImV4cCI6MjA2OTM0MzM3OX0.TI9DGipYP9X8dSZSUh5CVQIbeYnf9vhNXAqw5e5ZVkk";
+
+// 🔹 Helper: Get judge ID by username
+const fetchJudgeId = async (username: string) => {
+  const res = await fetch(
+    `${SUPABASE_URL}/rest/v1/judges?username=eq.${encodeURIComponent(
+      username
+    )}&select=id`,
+    {
+      headers: {
+        apikey: SUPABASE_API_KEY,
+        Authorization: `Bearer ${SUPABASE_API_KEY}`,
+      },
+    }
+  );
+  const data = await res.json();
+  return data.length > 0 ? data[0].id : null;
+};
 
 interface Score {
   participant_id: string;
   innovation_score: number;
   impact_score: number;
   feasibility_score: number;
+  market_score: number;
+  publication_score: number;
+  others_score: number;
   participant: {
     id: string;
     name: string;
@@ -25,17 +47,85 @@ interface LeaderboardEntry {
   totalInnovation: number;
   totalImpact: number;
   totalFeasibility: number;
+  totalMarket: number;
+  totalPublication: number;
+  totalOthers: number;
   totalScore: number;
 }
 
 export default function ScoreboardPage() {
-  const [scores, setScores] = useState<Record<string, LeaderboardEntry[]>>({});
+  const [authorized, setAuthorized] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [scores, setScores] = useState<Record<string, LeaderboardEntry[]>>({});
   const [selectedCategory, setSelectedCategory] = useState("FYP");
+  const [currentPage, setCurrentPage] = useState(1);
 
+  const navigate = useNavigate();
   const categories = ["FYP", "IDP", "Community Services", "PG"];
 
+  const itemsPerPage = 10;
+
+  const getMaxScore = (category: string) =>
+    category.toLowerCase() === "pg" ? 45 : 40;
+
+  // 🔹 Step 1: Check if logged-in user is SuperAdmin
   useEffect(() => {
+    const checkPermission = async () => {
+      try {
+        const username = Cookies.get("username");
+        if (!username) {
+          alert("Session expired. Please log in again.");
+          navigate("/Home");
+          return;
+        }
+
+        const judgeId = await fetchJudgeId(username);
+        if (!judgeId) {
+          alert("Judge not found. Redirecting...");
+          navigate("/Home");
+          return;
+        }
+
+        const res = await fetch(
+          `${SUPABASE_URL}/rest/v1/judges?id=eq.${judgeId}&select=account_type`,
+          {
+            headers: {
+              apikey: SUPABASE_API_KEY,
+              Authorization: `Bearer ${SUPABASE_API_KEY}`,
+            },
+          }
+        );
+        const data = await res.json();
+
+        if (data.length === 0) {
+          alert("Account not found. Redirecting...");
+          navigate("/Home");
+          return;
+        }
+
+        const accountType = data[0].account_type;
+        if (accountType === "SuperAdmin") {
+          setAuthorized(true);
+        } else {
+          alert("Only admin can view.");
+          navigate("/Home");
+        }
+      } catch (error) {
+        console.error("Error checking judge permission:", error);
+        alert("Something went wrong. Redirecting...");
+        navigate("/Home");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    checkPermission();
+  }, [navigate]);
+
+  // 🔹 Step 2: Fetch leaderboard data if authorized
+  useEffect(() => {
+    if (!authorized) return;
+
     const fetchScores = async () => {
       try {
         const res = await fetch(
@@ -50,6 +140,7 @@ export default function ScoreboardPage() {
 
         const data: Score[] = await res.json();
 
+        // Group by participant and calculate totals
         const grouped = Object.values(
           data.reduce((acc: any, score: any) => {
             const category = score.participant.category?.toLowerCase() || "";
@@ -81,8 +172,6 @@ export default function ScoreboardPage() {
           }, {})
         ).map((entry: any) => {
           const category = entry.category;
-
-          // Conditional total based on category
           const total =
             category === "pg"
               ? entry.innovation +
@@ -125,16 +214,30 @@ export default function ScoreboardPage() {
         setScores(byCategory);
       } catch (err) {
         console.error("Error fetching scores:", err);
-      } finally {
-        setLoading(false);
       }
     };
 
     fetchScores();
-  }, []);
+  }, [authorized]);
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen text-gray-300">
+        <Loader2 className="w-6 h-6 animate-spin mr-2" />
+        Checking access...
+      </div>
+    );
+  }
+
+  if (!authorized) return null;
 
   const catKey = selectedCategory.toLowerCase();
   const catScores = scores[catKey] || [];
+
+  // Pagination
+  const totalPages = Math.ceil(catScores.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const currentScores = catScores.slice(startIndex, startIndex + itemsPerPage);
 
   return (
     <div className="min-h-screen bg-gray-950 text-white px-4 md:px-6 py-10 font-sans">
@@ -151,7 +254,10 @@ export default function ScoreboardPage() {
           </label>
           <select
             value={selectedCategory}
-            onChange={(e) => setSelectedCategory(e.target.value)}
+            onChange={(e) => {
+              setSelectedCategory(e.target.value);
+              setCurrentPage(1);
+            }}
             className="bg-gray-900 border border-gray-700 text-gray-200 px-4 py-2 rounded-lg w-full max-w-xs focus:outline-none focus:ring-2 focus:ring-amber-400"
           >
             {categories.map((cat) => (
@@ -162,122 +268,19 @@ export default function ScoreboardPage() {
           </select>
         </div>
 
-        {loading ? (
-          <div className="flex items-center justify-center py-20">
-            <Loader2 className="w-8 h-8 animate-spin text-blue-500" />
-            <span className="ml-3 text-gray-400">Loading scores...</span>
-          </div>
-        ) : catScores.length === 0 ? (
+        {catScores.length === 0 ? (
           <p className="text-gray-500 text-center">
             No scores available for {selectedCategory}.
           </p>
         ) : (
-          <div>
-            <h2 className="text-2xl font-bold text-blue-400 mb-20">
+          <>
+            <h2 className="text-2xl font-bold text-blue-400 mb-6 text-center">
               {selectedCategory} Leaderboard
             </h2>
 
-            {/* Podium layout for top 3 */}
-            {catScores.length >= 3 && (
-              <div className="flex items-end justify-center gap-6 mb-10">
-                {/* 🥈 2nd Place */}
-                <div className="flex-1 max-w-[200px] text-center">
-                  <div className="h-[260px] flex flex-col justify-end p-4 rounded-xl bg-gradient-to-r from-gray-400/20 to-gray-300/10 border border-gray-400 shadow-lg overflow-hidden">
-                    <p className="text-3xl mb-1">🥈</p>
-                    <div
-                      className="overflow-y-auto max-h-[140px]"
-                      style={{
-                        scrollbarWidth: "none", // Firefox
-                        msOverflowStyle: "none", // IE/Edge
-                      }}
-                    >
-                      <style>
-                        {`
-                          div::-webkit-scrollbar {
-                            display: none;
-                          }
-                        `}
-                      </style>
-                      <h3 className="text-lg font-bold text-gray-200 break-words">
-                        {catScores[1].participant.name}
-                      </h3>
-                      <p className="text-sm text-amber-400 break-words">
-                        {catScores[1].participant.project_title}
-                      </p>
-                    </div>
-                    <p className="text-xl font-extrabold text-gray-300 mt-2">
-                      {catScores[1].totalScore.toFixed(1)}
-                    </p>
-                  </div>
-                </div>
-
-                {/* 👑 1st Place */}
-                <div className="flex-1 max-w-[220px] text-center">
-                  <div className="h-[300px] flex flex-col justify-end p-6 rounded-xl bg-gradient-to-r from-yellow-500/30 to-yellow-400/20 border border-yellow-500 shadow-2xl overflow-hidden">
-                    <p className="text-4xl mb-1">👑</p>
-                    <div
-                      className="overflow-y-auto max-h-[160px]"
-                      style={{
-                        scrollbarWidth: "none",
-                        msOverflowStyle: "none",
-                      }}
-                    >
-                      <style>
-                        {`
-                          div::-webkit-scrollbar {
-                            display: none;
-                          }
-                        `}
-                      </style>
-                      <h3 className="text-xl font-bold text-yellow-400 break-words">
-                        {catScores[0].participant.name}
-                      </h3>
-                      <p className="text-sm text-amber-400 break-words">
-                        {catScores[0].participant.project_title}
-                      </p>
-                    </div>
-                    <p className="text-2xl font-extrabold text-yellow-300 mt-2">
-                      {catScores[0].totalScore.toFixed(1)}
-                    </p>
-                  </div>
-                </div>
-
-                {/* 🥉 3rd Place */}
-                <div className="flex-1 max-w-[200px] text-center">
-                  <div className="h-[220px] flex flex-col justify-end p-4 rounded-xl bg-gradient-to-r from-amber-700/20 to-amber-600/10 border border-amber-600 shadow-lg overflow-hidden">
-                    <p className="text-3xl mb-1">🥉</p>
-                    <div
-                      className="overflow-y-auto max-h-[120px]"
-                      style={{
-                        scrollbarWidth: "none",
-                        msOverflowStyle: "none",
-                      }}
-                    >
-                      <style>
-                        {`
-                          div::-webkit-scrollbar {
-                            display: none;
-                          }
-                        `}
-                      </style>
-                      <h3 className="text-lg font-bold text-amber-600 break-words">
-                        {catScores[2].participant.name}
-                      </h3>
-                      <p className="text-sm text-amber-400 break-words">
-                        {catScores[2].participant.project_title}
-                      </p>
-                    </div>
-                    <p className="text-xl font-extrabold text-amber-500 mt-2">
-                      {catScores[2].totalScore.toFixed(1)}
-                    </p>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* Rest of the leaderboard */}
+            {/* 🧾 Paginated List */}
             <div className="space-y-4">
-              {catScores.slice(3).map((item, index) => (
+              {currentScores.map((item, index) => (
                 <motion.div
                   key={item.participant.id}
                   initial={{ opacity: 0, y: 10 }}
@@ -287,7 +290,7 @@ export default function ScoreboardPage() {
                 >
                   <div className="flex items-start gap-3">
                     <span className="text-2xl font-bold text-gray-400 w-6">
-                      {index + 4}.
+                      {startIndex + index + 1}.
                     </span>
                     <div>
                       <h3 className="text-lg font-bold text-white leading-tight">
@@ -304,22 +307,56 @@ export default function ScoreboardPage() {
 
                   <div className="text-right">
                     <p className="text-2xl font-extrabold text-amber-400">
-                      {item.totalScore.toFixed(1)}
+                      {item.totalScore.toFixed(1)} /{" "}
+                      {getMaxScore(item.participant.category)}
                     </p>
                     <p className="text-xs text-gray-500">
-                      Innovation: {item.totalInnovation.toFixed(1)} | Impact:{" "}
-                      {item.totalImpact.toFixed(1)} | Feasibility:{" "}
-                      {item.totalFeasibility.toFixed(1)}
+                      (
+                      {(
+                        (item.totalScore /
+                          getMaxScore(item.participant.category)) *
+                        100
+                      ).toFixed(1)}
+                      %)
                     </p>
                   </div>
                 </motion.div>
               ))}
             </div>
-          </div>
+
+            {/* Pagination Controls */}
+            <div className="flex justify-center items-center gap-4 mt-10">
+              <button
+                disabled={currentPage === 1}
+                onClick={() => setCurrentPage((p) => p - 1)}
+                className={`flex items-center gap-1 px-4 py-2 rounded-lg border ${
+                  currentPage === 1
+                    ? "border-gray-700 text-gray-500 cursor-not-allowed"
+                    : "border-amber-500 text-amber-400 hover:bg-amber-500/10"
+                }`}
+              >
+                <ChevronLeft className="w-4 h-4" /> Prev
+              </button>
+
+              <span className="text-sm text-gray-400">
+                Page {currentPage} of {totalPages}
+              </span>
+
+              <button
+                disabled={currentPage === totalPages}
+                onClick={() => setCurrentPage((p) => p + 1)}
+                className={`flex items-center gap-1 px-4 py-2 rounded-lg border ${
+                  currentPage === totalPages
+                    ? "border-gray-700 text-gray-500 cursor-not-allowed"
+                    : "border-amber-500 text-amber-400 hover:bg-amber-500/10"
+                }`}
+              >
+                Next <ChevronRight className="w-4 h-4" />
+              </button>
+            </div>
+          </>
         )}
       </div>
     </div>
   );
 }
-
-
