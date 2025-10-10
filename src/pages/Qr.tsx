@@ -68,7 +68,9 @@ const ScoreInput: React.FC<ScoreInputProps> = ({ label, value, onChange, icon })
                 }}
                 className="w-full bg-gray-800/70 px-4 py-3 text-white placeholder-gray-500 text-xl font-bold focus:outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
             />
-            <span className="text-gray-400 font-medium px-4">/ 10</span>
+            <span className="px-3 text-gray-400 text-sm font-semibold border-l border-gray-600">
+              / 10
+            </span>
         </div>
     </div>
 );
@@ -111,7 +113,9 @@ const ParticipantCard: React.FC<ParticipantCardProps> = ({ participant }) => (
             <User className="w-6 h-6 text-blue-500 mt-1"/>
             <div>
                 <h2 className="text-xl font-bold text-white leading-tight">{participant.name}</h2>
-                <p className="text-amber-400 font-medium text-sm leading-tight">{participant.project_title}</p>
+                <p className="text-amber-400 font-medium text-sm leading-tight">
+                  {participant.project_title}
+                </p>
             </div>
         </div>
         <div className="mt-3 pt-3 border-t border-gray-700 flex justify-between text-xs text-gray-400">
@@ -132,7 +136,9 @@ export default function QRScannerPage() {
   const [scores, setScores] = useState({ innovation: "", impact: "", feasibility: "", comments: "", market: "", publication: null as number | null, others: null as number | null});
   const navigate = useNavigate();
   const [submitted, setSubmitted] = useState(false);
-
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [showAlreadySubmittedModal, setShowAlreadySubmittedModal] = useState(false);
 
     useEffect(() => {
     const loadJudgeId = async () => {
@@ -143,8 +149,6 @@ export default function QRScannerPage() {
     };
     loadJudgeId();
   }, []);
-  // -------------------Handle QR from file -----------
- 
 
   // ------------------ Copy QR text ------------------
   const handleCopy = () => {
@@ -160,13 +164,11 @@ export default function QRScannerPage() {
 
     const fetchParticipant = async () => {
       setLoading(true);
-      setParticipant(null); // Clear previous participant data
-      setScores({ innovation: "", impact: "", feasibility: "", comments: "", market: "", publication: null, others: null }); // Clear previous scores
+      setParticipant(null);
+      setScores({ innovation: "", impact: "", feasibility: "", comments: "", market: "", publication: null, others: null });
 
       try {
         const res = await fetch(
-          // Use `ilike` for case-insensitive search if supported by your RLS/DB configuration, 
-          // but sticking to `eq` for safety based on original code
           `${SUPABASE_URL}/rest/v1/participants?id=eq.${encodeURIComponent(scannedData)}&select=id,name,project_title,institution,category`,
           {
             headers: {
@@ -176,9 +178,45 @@ export default function QRScannerPage() {
           }
         );
         const result = await res.json();
+
         if (result.length > 0) {
-          setParticipant(result[0]);
-          toast.success(`Participant found: ${result[0].name}`);
+          const participantData = result[0];
+          setParticipant(participantData);
+
+          // 🔎 Check if judge already submitted score
+          if (judgeId) {
+            const scoreRes = await fetch(
+              `${SUPABASE_URL}/rest/v1/scores?participant_id=eq.${participantData.id}&judge_id=eq.${judgeId}&select=*`,
+              {
+                headers: {
+                  apikey: SUPABASE_API_KEY,
+                  Authorization: `Bearer ${SUPABASE_API_KEY}`,
+                },
+              }
+            );
+            const scoreData = await scoreRes.json();
+
+            if (scoreData.length > 0) {
+              setSubmitted(true);
+              const existing = scoreData[0];
+              setScores({
+                innovation: String(existing.innovation_score ?? ""),
+                impact: String(existing.impact_score ?? ""),
+                feasibility: String(existing.feasibility_score ?? ""),
+                comments: existing.comments ?? "",
+                market: String(existing.market_score ?? ""),
+                publication: existing.publication_score,
+                others: existing.others_score,
+              });
+
+              // 🚨 Show popup modal instead of inline text
+              setShowAlreadySubmittedModal(true);
+            } else {
+              setSubmitted(false);
+            }
+          }
+
+          toast.success(`Participant found: ${participantData.name}`);
         } else {
           toast.error("Participant not found. Check the QR code content.");
           setParticipant(null);
@@ -251,7 +289,7 @@ export default function QRScannerPage() {
     try {
       // Check for existing score
       const existingScoreRes = await fetch(
-        `${SUPABASE_URL}/rest/v1/scores?participant_id=eq.${participant.id}&judge_id=eq.${judgeId}&select=id`,
+        `${SUPABASE_URL}/rest/v1/scores?participant_name=eq.${participant.id}&judge_id=eq.${judgeId}&select=id`,
         {
           headers: { apikey: SUPABASE_API_KEY, Authorization: `Bearer ${SUPABASE_API_KEY}` },
         }
@@ -261,6 +299,7 @@ export default function QRScannerPage() {
       const payload = {
         participant_id: participant.id,
         judge_id: judgeId,
+        category: participant.category,
         innovation_score: Number(innovation),
         impact_score: Number(impact),
         feasibility_score: Number(feasibility),
@@ -305,18 +344,44 @@ export default function QRScannerPage() {
       if (res.ok) {
         const action = existingScore.length > 0 ? "updated" : "submitted";
         toast.success(`Scores successfully ${action} for ${participant.name}! 🎉`);
-        setScores({ innovation: "", impact: "", feasibility: "", comments: "", market: "", publication: null, others: null });
+
+        // Reset everything
+        setScores({
+          innovation: "",
+          impact: "",
+          feasibility: "",
+          comments: "",
+          market: "",
+          publication: null,
+          others: null,
+        });
         setScannedData(null);
         setParticipant(null);
-      } else {
-        const errorData = await res.json();
-        console.error("Supabase Error:", errorData);
-        toast.error(`Failed to submit scores. ${errorData.message || 'Server error.'}`);
+
+        // ✅ Show success popup
+        setShowSuccessModal(true);
       }
     } catch (err) {
       console.error(err);
       toast.error("A network error occurred while submitting scores.");
     }
+  };
+
+  const calculateTotalScore = () => {
+    const { innovation, impact, feasibility, market, publication, others } = scores;
+
+    // Convert numeric scores safely
+    const baseScores = [innovation, impact, feasibility, market]
+      .map((s) => Number(s) || 0);
+
+    // Add optional checkboxes (only if not null)
+    const extraScores = [
+      publication !== null ? publication : 0,
+      others !== null ? others : 0,
+    ];
+
+    const total = [...baseScores, ...extraScores].reduce((a, b) => a + b, 0);
+    return total;
   };
 
   return (
@@ -356,9 +421,6 @@ export default function QRScannerPage() {
              
             />
           </div>
-
-          {/* Scan from file */}
-          
 
           {/* Result Area */}
           <div className="mt-6 text-center w-full">
@@ -405,25 +467,25 @@ export default function QRScannerPage() {
                         {/* Score Inputs */}
                         <div className="grid gap-4 mb-6">
                             <ScoreInput
-                                label="Novelty and Inventiveness"
+                                label="Novelty and Inventiveness (0-10)"
                                 value={scores.innovation}
                                 onChange={(value) => setScores({ ...scores, innovation: value })}
                                 icon={<Zap className="w-5 h-5" />}
                             />
                             <ScoreInput
-                                label="Usefulness and Application"
+                                label="Usefulness and Application (0-10)"
                                 value={scores.impact}
                                 onChange={(value) => setScores({ ...scores, impact: value })}
                                 icon={<TrendingUp className="w-5 h-5" />}
                             />
                             <ScoreInput
-                                label="Presentation and Demonstration"
+                                label="Presentation and Demonstration (0-10)"
                                 value={scores.feasibility}
                                 onChange={(value) => setScores({ ...scores, feasibility: value })}
                                 icon={<Star className="w-5 h-5" />}
                             />
                             <ScoreInput
-                                label="Market and Commercial Potential"
+                                label="Market and Commercial Potential (0-10)"
                                 value={scores.market}
                                 onChange={(value) => setScores({ ...scores, market: value })}
                                 icon={<Star className="w-5 h-5" />}
@@ -433,13 +495,13 @@ export default function QRScannerPage() {
                             {participant?.category?.toLowerCase() === "pg" && (
                               <>
                                 <CheckBoxInput
-                                  label="Publication"
+                                  label="Publication (0-10)"
                                   value={scores.publication}
                                   onChange={(value) => setScores({ ...scores, publication: value })}
                                   icon={<Star className="w-5 h-5" />}
                                 />
                                 <CheckBoxInput
-                                  label="Any LOI, NDA, MoU or MoA"
+                                  label="Any LOI, NDA, MoU or MoA (0-10)"
                                   value={scores.others}
                                   onChange={(value) => setScores({ ...scores, others: value })}
                                   icon={<Star className="w-5 h-5" />}
@@ -447,21 +509,98 @@ export default function QRScannerPage() {
                               </>
                             )}
                         </div>
-                        
-                        <button
-                          onClick={handleSubmitScores}
-                          className="w-full px-4 py-3 bg-blue-600 text-white rounded-lg font-bold text-lg hover:bg-blue-700 transition-colors duration-200 shadow-xl shadow-blue-500/40 flex items-center justify-center gap-2 disabled:opacity-50"
-                          disabled={!scores.innovation || !scores.impact || !scores.feasibility}
-                        >
-                          <Send className="w-5 h-5" />
-                          {submitted ? "Already Submitted" : "Finalize & Submit Scores"}
-                        </button>
+
+                        {!submitted && (
+                          <button
+                            onClick={() => setShowConfirmModal(true)}
+                            className="w-full px-4 py-3 bg-blue-600 text-white rounded-lg font-bold text-lg hover:bg-blue-700 transition-colors duration-200 shadow-xl shadow-blue-500/40 flex items-center justify-center gap-2 disabled:opacity-50"
+                            disabled={!scores.innovation || !scores.impact || !scores.feasibility}
+                          >
+                            <Send className="w-5 h-5" />
+                            Finalize & Submit Scores
+                          </button>
+                        )}
                     </div>
                 )}
             </motion.div>
           </div>
         </motion.div>
       </div>
+      {/* --- Confirmation Modal --- */}
+      {showConfirmModal && (
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50">
+          <div className="bg-gray-800 rounded-xl shadow-2xl p-8 text-center max-w-sm mx-auto border border-gray-700">
+            <h3 className="text-lg font-bold text-white mb-3">Confirm Submission</h3>
+
+            <div className="bg-gray-900 rounded-lg p-6 mb-5 border border-gray-700">
+              <p className="text-gray-400 text-sm mb-2">Total Score</p>
+              <span className="text-4xl font-extrabold text-amber-400">
+                {calculateTotalScore().toFixed(2)}
+              </span>
+            </div>
+
+            <p className="text-gray-400 mb-6">
+              Are you sure you want to submit this total score? You won’t be able to edit it later.
+            </p>
+
+            <div className="flex justify-center gap-4">
+              <button
+                onClick={() => setShowConfirmModal(false)}
+                className="px-4 py-2 bg-gray-600 hover:bg-gray-500 rounded-lg text-white font-semibold transition"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => {
+                  setShowConfirmModal(false);
+                  handleSubmitScores();
+                }}
+                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded-lg text-white font-semibold transition"
+              >
+                Yes, Submit
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* --- Success Modal --- */}
+      {showSuccessModal && (
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50">
+          <div className="bg-green-700 rounded-xl shadow-2xl p-8 text-center max-w-sm mx-auto border border-green-500">
+            <h3 className="text-lg font-bold text-white mb-3">✅ Submitted Successfully!</h3>
+            <p className="text-green-100 mb-6">Your scores have been recorded.</p>
+            <button
+              onClick={() => setShowSuccessModal(false)}
+              className="px-4 py-2 bg-white text-green-700 font-semibold rounded-lg hover:bg-gray-100 transition"
+            >
+              OK
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* --- Already Submitted Modal --- */}
+      {showAlreadySubmittedModal && (
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50">
+          <div className="bg-yellow-700 rounded-xl shadow-2xl p-8 text-center max-w-sm mx-auto border border-yellow-500">
+            <h3 className="text-lg font-bold text-white mb-3">⚠️ Already Submitted</h3>
+            <p className="text-yellow-100 mb-6">
+              You have already submitted scores for this participant.
+            </p>
+            <button
+              onClick={() => {
+                setShowAlreadySubmittedModal(false);
+                setParticipant(null);
+                setScannedData(null);
+              }}
+              className="px-4 py-2 bg-white text-yellow-700 font-semibold rounded-lg hover:bg-gray-100 transition"
+            >
+              OK
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

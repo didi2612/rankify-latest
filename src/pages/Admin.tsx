@@ -42,6 +42,15 @@ const [editing, setEditing] = useState<{ rowId: string | null; col: string | nul
 const [editValue, setEditValue] = useState("");
  const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 8; 
+const getParticipantName = (id: string) => {
+  const p = participants.find((x) => String(x.id) === String(id));
+  return p ? p.name : `ID ${id}`;
+};
+
+const getJudgeName = (id: string) => {
+  const j = judges.find((x) => String(x.id) === String(id));
+  return j ? j.name : `ID ${id}`;
+};
 
 // ------------------- Filtering and Pagination Logic -----
   const filteredData = data.filter((row) => {
@@ -63,11 +72,14 @@ const [editValue, setEditValue] = useState("");
           row.organisers?.toLowerCase().includes(query)
         );
       case "scores":
-        return (
-          row.participant_id?.toString().includes(query) ||
-          row.judge_id?.toString().includes(query) ||
-          row.comments?.toLowerCase().includes(query)
-        );
+  const participantName = getParticipantName(row.participant_id).toLowerCase();
+  const judgeName = getJudgeName(row.judge_id).toLowerCase();
+  return (
+    participantName.includes(query) ||
+    judgeName.includes(query) ||
+    row.comments?.toLowerCase().includes(query)
+  );
+
       default:
         return true;
     }
@@ -125,6 +137,12 @@ const handleSaveScore = async (rowId: string, col: string, newValue: string) => 
     judges: "Judges",
     scores: "Scores",
   };
+  const scoreDisplayNames: Record<string, string> = {
+    innovation_score: "Novelty And Inventiveness",
+    impact_score: "Usefulness And Application",
+    feasibility_score: "Presentation And Demonstration",
+    market_score: "Market And Commercial Potential",
+  };
 useEffect(() => {
   if (accountType === "SuperAdmin") {
     fetchTableData(selectedTable);
@@ -144,15 +162,7 @@ useEffect(() => {
       .then(setJudges);
   }
 }, [selectedTable, accountType]);
-const getParticipantName = (id: string) => {
-  const p = participants.find((x) => String(x.id) === String(id));
-  return p ? p.name : `ID ${id}`;
-};
 
-const getJudgeName = (id: string) => {
-  const j = judges.find((x) => String(x.id) === String(id));
-  return j ? j.name : `ID ${id}`;
-};
 
   // ------------------- Fetch user from cookie -------------------
   useEffect(() => {
@@ -529,15 +539,24 @@ const getJudgeName = (id: string) => {
   </div>
 ) : (
   /* --- Scores List --- */
-  <div className="grid gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+ <div className="grid gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
     {paginatedData.map((row) => (
       <div
         key={row.id}
         className="bg-gray-800 border border-gray-700 rounded-xl p-6 shadow-xl transition-all duration-300 hover:shadow-amber-500/20"
       >
-        <h4 className="text-lg font-bold text-amber-400 mb-3">
-          Score ID: {row.id}
-        </h4>
+        <div className="flex justify-between items-start mb-3">
+          <h4 className="text-lg font-bold text-amber-400">
+            Score ID: {row.id}
+          </h4>
+          {/* 💡 NEW DELETE BUTTON FOR SCORES */}
+          <button
+            onClick={() => handleDelete(row.id)}
+            className="flex items-center justify-center gap-1 px-3 py-1 text-sm rounded-md bg-red-600 hover:bg-red-700 text-white font-medium transition shadow-md"
+          >
+            <Trash2 className="w-4 h-4" />
+          </button>
+        </div>
 
         {tableColumns[selectedTable].map((col) => (
           <div
@@ -545,7 +564,7 @@ const getJudgeName = (id: string) => {
             className="flex justify-between border-b border-gray-700/50 py-2 last:border-b-0"
           >
             <span className="text-gray-400 text-xs uppercase tracking-wider">
-              {col.replace(/_/g, " ")}
+              {scoreDisplayNames[col] || col.replace(/_/g, " ")}
             </span>
 
             <div className="flex items-center gap-2">
