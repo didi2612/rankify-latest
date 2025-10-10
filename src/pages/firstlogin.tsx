@@ -164,7 +164,7 @@ export default function AuthHandler() {
         FIRST TIME LOGIN
       </h1>
       <p className="text-gray-400 text-center mb-4">
-        Enter your username to proceed.
+        Enter your username to proceed
       </p>
       <div className="space-y-4">
         <div>
