@@ -13,7 +13,7 @@ const FLOW_STATES = {
   USERNAME_INPUT: 'username_input', // Initial state: check username existence/password status
   PASSWORD_SETUP: 'password_setup', // Setup state: create a new password
   LOGIN_PROMPT: 'login_prompt',     // Result state: user already has an account and password
-  SETUP_SUCCESS: 'setup_success'    // Result state: password setup completed
+  SETUP_SUCCESS: 'setup_success'    /
 };
 
 // --- TypeScript Type Definitions ---
