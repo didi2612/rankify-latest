@@ -521,7 +521,7 @@ useEffect(() => {
         className="bg-gray-800 border border-gray-700 rounded-xl p-6 shadow-xl transition-all duration-300 hover:shadow-amber-500/20 flex flex-col items-center text-center"
       >
         <img
-          src={judge.avatar_url || "/default-avatar.png"}
+          src={judge.avatar_url || "https://i.pinimg.com/736x/c0/74/9b/c0749b7cc401421662ae901ec8f9f660.jpg"}
           alt={judge.name}
           className="w-20 h-20 rounded-full border-4 border-amber-500 mb-4 object-cover shadow-lg"
         />
