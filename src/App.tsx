@@ -7,13 +7,13 @@ import Sidebar from './components/Sidebar';
 import MyUploads from './pages/MyUpload';
 import QrPages from './pages/Qr';
 import AdminPages from './pages/Admin';
-
+import First from './pages/firstlogin';
 import Scoreboard from './pages/Scoreboard';
 
 
 function AppWrapper() {
   const location = useLocation();
-  const hideSidebarPaths = ['/profile', '/azp',  '/myupload', '/register', '/qr','/admin'];
+  const hideSidebarPaths = ['/profile', '/azp',  '/myupload','/firsttimelogin', '/register', '/qr','/admin'];
   const shouldShowSidebar = !hideSidebarPaths.includes(location.pathname);
 
   return (
@@ -25,7 +25,7 @@ function AppWrapper() {
        
        
         <Route path="/azp" element={<Login />} />
-        
+        <Route path="/firsttimelogin" element={<First />} />
 
         
         <Route

@@ -95,7 +95,11 @@ export default function Login() {
           >
             {loading ? "Logging in..." : "Login"}
           </button>
-         
+        <a href="/firsttimelogin" className="block">
+  <p className="text-sm uppercase font-bold text-right text-transparent bg-clip-text text-white animate-text">
+    First time login ?
+  </p>
+</a>
         </div>
       </div>
     </div>
