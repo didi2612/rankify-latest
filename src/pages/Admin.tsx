@@ -539,15 +539,24 @@ useEffect(() => {
   </div>
 ) : (
   /* --- Scores List --- */
-  <div className="grid gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+ <div className="grid gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
     {paginatedData.map((row) => (
       <div
         key={row.id}
         className="bg-gray-800 border border-gray-700 rounded-xl p-6 shadow-xl transition-all duration-300 hover:shadow-amber-500/20"
       >
-        <h4 className="text-lg font-bold text-amber-400 mb-3">
-          Score ID: {row.id}
-        </h4>
+        <div className="flex justify-between items-start mb-3">
+          <h4 className="text-lg font-bold text-amber-400">
+            Score ID: {row.id}
+          </h4>
+          {/* 💡 NEW DELETE BUTTON FOR SCORES */}
+          <button
+            onClick={() => handleDelete(row.id)}
+            className="flex items-center justify-center gap-1 px-3 py-1 text-sm rounded-md bg-red-600 hover:bg-red-700 text-white font-medium transition shadow-md"
+          >
+            <Trash2 className="w-4 h-4" />
+          </button>
+        </div>
 
         {tableColumns[selectedTable].map((col) => (
           <div
