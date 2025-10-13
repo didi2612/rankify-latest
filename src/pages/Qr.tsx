@@ -574,6 +574,7 @@ export default function QRScannerPage() {
                 onClick={() => {
                   setShowConfirmModal(false);
                   handleSubmitScores();
+                  setShowCamera(true);
                 }}
                 className="px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded-lg text-white font-semibold transition"
               >
