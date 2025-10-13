@@ -614,6 +614,7 @@ export default function QRScannerPage() {
                 setShowAlreadySubmittedModal(false);
                 setParticipant(null);
                 setScannedData(null);
+                setShowCamera(true);
               }}
               className="px-4 py-2 bg-white text-yellow-700 font-semibold rounded-lg hover:bg-gray-100 transition"
             >
